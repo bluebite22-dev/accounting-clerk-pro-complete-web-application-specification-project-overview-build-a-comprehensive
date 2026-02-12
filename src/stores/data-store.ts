@@ -102,7 +102,7 @@ export interface StopOrder {
   // Form metadata (snake_case for Petrichor5 compatibility)
   form_number?: string;
   form_date?: string;
-  status?: "draft" | "pending_approval" | "active" | "completed" | "cancelled" | "rejected";
+  status?: "draft" | "pending_approval" | "approved" | "rejected" | "active" | "completed" | "cancelled";
   type: "amount" | "vendor" | "category" | "recurring" | "date" | "payroll";
   isActive: boolean;
   
@@ -130,6 +130,15 @@ export interface StopOrder {
   // Remittance details
   account_number?: string;
   company_name?: string;
+  
+  // Approval workflow
+  submittedBy?: string;
+  submittedAt?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  approvalNotes?: string;
   
   // Internal fields
   verification_hash?: string;

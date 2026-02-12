@@ -17,10 +17,15 @@ Accounting Clerk Pro is a full-featured accounting management web application wi
 - [x] Stop Orders System (condition-based payment blocking)
 - [x] Budget Management (planning, tracking, variance analysis)
 - [x] Transaction Tables (filters, sorters, bulk operations)
-- [x] Import/Export System (CSV, Excel, PDF support)
+- [x] Import/Export System (CSV, Excel, JSON, PDF support)
 - [x] Reporting Engine (P&L, Cash Flow, Balance Sheet)
 - [x] PWA Capabilities (manifest, offline support)
 - [x] Mobile Responsive Design
+- [x] User Registration (self-signup with role selection)
+- [x] User Invitations (email-based invitations with role assignment)
+- [x] Delivery Tracking (automatic delivery count from deduction/150)
+- [x] Edit Forms Section (centralized form management)
+- [x] Stop Order Approval Workflow (submit, approve/reject with notes)
 - [x] Quality assurance (build, lint, typecheck passing)
 
 ## Current Structure
@@ -35,9 +40,12 @@ Accounting Clerk Pro is a full-featured accounting management web application wi
 | `src/app/customers/` | Customer database | ✅ Complete |
 | `src/app/vendors/` | Vendor database | ✅ Complete |
 | `src/app/stop-orders/` | Stop orders management | ✅ Complete |
+| `src/app/deliveries/` | Delivery tracking | ✅ New |
+| `src/app/forms/` | Form management | ✅ New |
 | `src/app/budgets/` | Budget management | ✅ Complete |
 | `src/app/reports/` | Financial reports | ✅ Complete |
 | `src/app/settings/` | User & company settings | ✅ Complete |
+| `src/lib/export-import.ts` | Export/Import utilities | ✅ New |
 | `src/db/schema.ts` | Drizzle ORM schema | ✅ Complete |
 | `src/stores/` | Zustand state management | ✅ Complete |
 | `src/components/ui/` | Reusable UI components | ✅ Complete |
@@ -46,12 +54,12 @@ Accounting Clerk Pro is a full-featured accounting management web application wi
 
 ## Current Focus
 
-The application is complete and production-ready. Next steps could include:
+The application is complete with enhanced features:
 
-1. Testing on real devices
-2. Adding more automated tests
-3. Setting up CI/CD pipeline
-4. Deploying to production
+1. **User Management**: Self-registration + Invitation-based onboarding
+2. **Delivery Tracking**: Automatic calculation from stop order deductions
+3. **Form Management**: Centralized editing for all forms
+4. **Multi-format Export/Import**: CSV, Excel, JSON, PDF support
 
 ## Quick Start Guide
 

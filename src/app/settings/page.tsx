@@ -20,6 +20,11 @@ import {
   Edit,
   Trash2,
   X,
+  Mail,
+  Send,
+  Copy,
+  Check,
+  Clock,
 } from "lucide-react";
 
 const settingsSections = [
@@ -36,6 +41,16 @@ export default function SettingsPage() {
   const { user } = useAuthStore();
   const [activeSection, setActiveSection] = useState("profile");
   const [saved, setSaved] = useState(false);
+
+  // Helper function to format dates
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   // Profile form state
   const [profileForm, setProfileForm] = useState({
@@ -99,6 +114,16 @@ export default function SettingsPage() {
     password: "",
   });
 
+  // Invitations state
+  const [invitations, setInvitations] = useState([
+    { id: "1", email: "newuser@company.com", role: "clerk", status: "pending", sentAt: "2024-01-15T10:30:00Z", expiresAt: "2024-01-22T10:30:00Z" },
+    { id: "2", email: "another@company.com", role: "accountant", status: "accepted", sentAt: "2024-01-10T14:00:00Z", expiresAt: "2024-01-17T14:00:00Z" },
+  ]);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: "", role: "clerk", message: "" });
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showInvitationTab, setShowInvitationTab] = useState(false);
+
   const handleAddUser = () => {
     setEditingUser(null);
     setUserForm({ firstName: "", lastName: "", email: "", role: "clerk", password: "" });
@@ -136,6 +161,44 @@ export default function SettingsPage() {
       setUsers([...users, newUser]);
     }
     setShowUserModal(false);
+  };
+
+  // Invitation handlers
+  const handleSendInvitation = () => {
+    if (!inviteForm.email) return;
+    
+    const newInvitation = {
+      id: Date.now().toString(),
+      email: inviteForm.email,
+      role: inviteForm.role,
+      status: "pending",
+      sentAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    setInvitations([newInvitation, ...invitations]);
+    setInviteForm({ email: "", role: "clerk", message: "" });
+    setShowInviteModal(false);
+  };
+
+  const handleResendInvitation = (id: string) => {
+    setInvitations(invitations.map(inv => 
+      inv.id === id 
+        ? { ...inv, sentAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), status: "pending" }
+        : inv
+    ));
+  };
+
+  const handleCancelInvitation = (id: string) => {
+    if (confirm("Are you sure you want to cancel this invitation?")) {
+      setInvitations(invitations.filter(inv => inv.id !== id));
+    }
+  };
+
+  const handleCopyInviteLink = (id: string) => {
+    const link = `https://app.company.com/join/${id}`;
+    navigator.clipboard.writeText(link);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleSave = () => {
@@ -257,78 +320,197 @@ export default function SettingsPage() {
             )}
 
             {activeSection === "users" && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>User Management</CardTitle>
-                    <CardDescription>Manage users and their access permissions</CardDescription>
-                  </div>
-                  <Button onClick={handleAddUser}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add User
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-neutral-800">
-                          <th className="pb-3 text-left text-sm font-medium text-neutral-400">User</th>
-                          <th className="pb-3 text-left text-sm font-medium text-neutral-400">Email</th>
-                          <th className="pb-3 text-left text-sm font-medium text-neutral-400">Role</th>
-                          <th className="pb-3 text-left text-sm font-medium text-neutral-400">Status</th>
-                          <th className="pb-3 text-right text-sm font-medium text-neutral-400">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {users.map((user) => (
-                          <tr key={user.id} className="border-b border-neutral-800/50">
-                            <td className="py-4">
-                              <div className="flex items-center gap-3">
-                                <Avatar name={`${user.firstName} ${user.lastName}`} size="sm" />
-                                <span className="font-medium text-neutral-100">{user.firstName} {user.lastName}</span>
-                              </div>
-                            </td>
-                            <td className="py-4 text-neutral-400">{user.email}</td>
-                            <td className="py-4">
-                              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                user.role === "admin" ? "bg-purple-500/20 text-purple-400" :
-                                user.role === "accountant" ? "bg-blue-500/20 text-blue-400" :
-                                user.role === "auditor" ? "bg-green-500/20 text-green-400" :
-                                "bg-neutral-500/20 text-neutral-400"
-                              }`}>
-                                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                              </span>
-                            </td>
-                            <td className="py-4">
-                              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                user.isActive ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
-                              }`}>
-                                {user.isActive ? "Active" : "Inactive"}
-                              </span>
-                            </td>
-                            <td className="py-4 text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => handleDeleteUser(user.id)}
-                                  className="text-red-400 hover:text-red-300"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="space-y-6">
+                {/* Users Tab Toggle */}
+                <div className="flex gap-2 border-b border-neutral-800 pb-2">
+                  <button
+                    onClick={() => setShowInvitationTab(false)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      !showInvitationTab
+                        ? "bg-blue-600 text-white"
+                        : "text-neutral-400 hover:text-neutral-100"
+                    }`}
+                  >
+                    <Users className="h-4 w-4" />
+                    Users ({users.length})
+                  </button>
+                  <button
+                    onClick={() => setShowInvitationTab(true)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      showInvitationTab
+                        ? "bg-blue-600 text-white"
+                        : "text-neutral-400 hover:text-neutral-100"
+                    }`}
+                  >
+                    <Mail className="h-4 w-4" />
+                    Invitations ({invitations.filter(i => i.status === "pending").length})
+                  </button>
+                </div>
+
+                {!showInvitationTab ? (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle>User Management</CardTitle>
+                        <CardDescription>Manage users and their access permissions</CardDescription>
+                      </div>
+                      <Button onClick={handleAddUser}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add User
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-neutral-800">
+                              <th className="pb-3 text-left text-sm font-medium text-neutral-400">User</th>
+                              <th className="pb-3 text-left text-sm font-medium text-neutral-400">Email</th>
+                              <th className="pb-3 text-left text-sm font-medium text-neutral-400">Role</th>
+                              <th className="pb-3 text-left text-sm font-medium text-neutral-400">Status</th>
+                              <th className="pb-3 text-right text-sm font-medium text-neutral-400">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {users.map((user) => (
+                              <tr key={user.id} className="border-b border-neutral-800/50">
+                                <td className="py-4">
+                                  <div className="flex items-center gap-3">
+                                    <Avatar name={`${user.firstName} ${user.lastName}`} size="sm" />
+                                    <span className="font-medium text-neutral-100">{user.firstName} {user.lastName}</span>
+                                  </div>
+                                </td>
+                                <td className="py-4 text-neutral-400">{user.email}</td>
+                                <td className="py-4">
+                                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                    user.role === "admin" ? "bg-purple-500/20 text-purple-400" :
+                                    user.role === "accountant" ? "bg-blue-500/20 text-blue-400" :
+                                    user.role === "auditor" ? "bg-green-500/20 text-green-400" :
+                                    "bg-neutral-500/20 text-neutral-400"
+                                  }`}>
+                                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                  </span>
+                                </td>
+                                <td className="py-4">
+                                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                    user.isActive ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                                  }`}>
+                                    {user.isActive ? "Active" : "Inactive"}
+                                  </span>
+                                </td>
+                                <td className="py-4 text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)}>
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => handleDeleteUser(user.id)}
+                                      className="text-red-400 hover:text-red-300"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="bg-neutral-900 border-neutral-800">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle>User Invitations</CardTitle>
+                        <CardDescription>Invite new users via email</CardDescription>
+                      </div>
+                      <Button onClick={() => setShowInviteModal(true)}>
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Invitation
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      {invitations.length === 0 ? (
+                        <div className="text-center py-8 text-neutral-400">
+                          <Mail className="h-12 w-12 mx-auto mb-4 text-neutral-600" />
+                          <p>No invitations sent yet</p>
+                          <p className="text-sm mt-1">Send invitations to add new users to your organization</p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-neutral-800">
+                                <th className="pb-3 text-left text-sm font-medium text-neutral-400">Email</th>
+                                <th className="pb-3 text-left text-sm font-medium text-neutral-400">Role</th>
+                                <th className="pb-3 text-left text-sm font-medium text-neutral-400">Status</th>
+                                <th className="pb-3 text-left text-sm font-medium text-neutral-400">Sent</th>
+                                <th className="pb-3 text-left text-sm font-medium text-neutral-400">Expires</th>
+                                <th className="pb-3 text-right text-sm font-medium text-neutral-400">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {invitations.map((invitation) => (
+                                <tr key={invitation.id} className="border-b border-neutral-800/50">
+                                  <td className="py-4 text-white">{invitation.email}</td>
+                                  <td className="py-4">
+                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                      invitation.role === "admin" ? "bg-purple-500/20 text-purple-400" :
+                                      invitation.role === "accountant" ? "bg-blue-500/20 text-blue-400" :
+                                      invitation.role === "auditor" ? "bg-green-500/20 text-green-400" :
+                                      "bg-neutral-500/20 text-neutral-400"
+                                    }`}>
+                                      {invitation.role.charAt(0).toUpperCase() + invitation.role.slice(1)}
+                                    </span>
+                                  </td>
+                                  <td className="py-4">
+                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                      invitation.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
+                                      invitation.status === "accepted" ? "bg-green-500/20 text-green-400" :
+                                      "bg-red-500/20 text-red-400"
+                                    }`}>
+                                      {invitation.status === "pending" && <Clock className="h-3 w-3 mr-1" />}
+                                      {invitation.status === "accepted" && <Check className="h-3 w-3 mr-1" />}
+                                      {invitation.status.charAt(0).toUpperCase() + invitation.status.slice(1)}
+                                    </span>
+                                  </td>
+                                  <td className="py-4 text-neutral-400">{formatDate(invitation.sentAt)}</td>
+                                  <td className="py-4 text-neutral-400">{formatDate(invitation.expiresAt)}</td>
+                                  <td className="py-4 text-right">
+                                    <div className="flex justify-end gap-2">
+                                      {invitation.status === "pending" && (
+                                        <>
+                                          <Button variant="ghost" size="sm" onClick={() => handleCopyInviteLink(invitation.id)}>
+                                            {copiedId === invitation.id ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                                          </Button>
+                                          <Button variant="ghost" size="sm" onClick={() => handleResendInvitation(invitation.id)}>
+                                            <Send className="h-4 w-4" />
+                                          </Button>
+                                        </>
+                                      )}
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => handleCancelInvitation(invitation.id)}
+                                        className="text-red-400 hover:text-red-300"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             )}
 
             {activeSection === "company" && (
@@ -514,60 +696,57 @@ export default function SettingsPage() {
                   <CardDescription>Manage your account security</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div>
-                    <h4 className="mb-4 text-sm font-medium text-neutral-200">Change Password</h4>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-neutral-200">Current Password</label>
-                        <Input
-                          type="password"
-                          value={securityForm.currentPassword}
-                          onChange={(e) => setSecurityForm({ ...securityForm, currentPassword: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-neutral-200">New Password</label>
-                        <Input
-                          type="password"
-                          value={securityForm.newPassword}
-                          onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-neutral-200">Confirm New Password</label>
-                        <Input
-                          type="password"
-                          value={securityForm.confirmPassword}
-                          onChange={(e) => setSecurityForm({ ...securityForm, confirmPassword: e.target.value })}
-                        />
-                      </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-neutral-200">Current Password</label>
+                      <Input
+                        type="password"
+                        value={securityForm.currentPassword}
+                        onChange={(e) => setSecurityForm({ ...securityForm, currentPassword: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-neutral-200">New Password</label>
+                      <Input
+                        type="password"
+                        value={securityForm.newPassword}
+                        onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-neutral-200">Confirm New Password</label>
+                      <Input
+                        type="password"
+                        value={securityForm.confirmPassword}
+                        onChange={(e) => setSecurityForm({ ...securityForm, confirmPassword: e.target.value })}
+                      />
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-neutral-800 p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-neutral-100">Two-Factor Authentication</p>
-                        <p className="text-xs text-neutral-500">Add an extra layer of security to your account</p>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        {securityForm.twoFactorEnabled ? "Disable" : "Enable"}
-                      </Button>
+                  <div className="flex items-center justify-between rounded-lg border border-neutral-800 p-4">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-100">Two-Factor Authentication</p>
+                      <p className="text-xs text-neutral-500">Add an extra layer of security</p>
                     </div>
+                    <input
+                      type="checkbox"
+                      checked={securityForm.twoFactorEnabled}
+                      onChange={(e) => setSecurityForm({ ...securityForm, twoFactorEnabled: e.target.checked })}
+                      className="h-5 w-5 rounded border-neutral-700 bg-neutral-800 text-blue-500 focus:ring-blue-500"
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-neutral-200">Session Timeout (minutes)</label>
                     <select
-                      className="flex h-10 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-48"
+                      className="flex h-10 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={securityForm.sessionTimeout}
                       onChange={(e) => setSecurityForm({ ...securityForm, sessionTimeout: e.target.value })}
                     >
                       <option value="15">15 minutes</option>
                       <option value="30">30 minutes</option>
                       <option value="60">1 hour</option>
-                      <option value="120">2 hours</option>
-                      <option value="0">Never</option>
+                      <option value="240">4 hours</option>
                     </select>
                   </div>
 
@@ -584,7 +763,7 @@ export default function SettingsPage() {
             {activeSection === "appearance" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Appearance Settings</CardTitle>
+                  <CardTitle>Appearance</CardTitle>
                   <CardDescription>Customize the look and feel</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -632,6 +811,7 @@ export default function SettingsPage() {
                         <option value="es">Spanish</option>
                         <option value="fr">French</option>
                         <option value="de">German</option>
+                        <option value="zh">Chinese</option>
                       </select>
                     </div>
                     <div className="space-y-2">
@@ -643,18 +823,18 @@ export default function SettingsPage() {
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-neutral-200">Number Format</label>
+                      <label className="text-sm font-medium text-neutral-200">Time Format</label>
                       <select className="flex h-10 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="1,234.56">1,234.56</option>
-                        <option value="1.234,56">1.234,56</option>
-                        <option value="1 234.56">1 234.56</option>
+                        <option value="12h">12-hour (AM/PM)</option>
+                        <option value="24h">24-hour</option>
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-neutral-200">First Day of Week</label>
+                      <label className="text-sm font-medium text-neutral-200">Number Format</label>
                       <select className="flex h-10 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="sunday">Sunday</option>
-                        <option value="monday">Monday</option>
+                        <option value="1,000.00">1,000.00</option>
+                        <option value="1.000,00">1.000,00</option>
+                        <option value="1 000,00">1 000,00</option>
                       </select>
                     </div>
                   </div>
@@ -695,7 +875,7 @@ export default function SettingsPage() {
               </div>
               
               <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-neutral-200">First Name</label>
                     <Input
@@ -758,6 +938,67 @@ export default function SettingsPage() {
                 </Button>
                 <Button onClick={handleSaveUser}>
                   {editingUser ? "Update User" : "Add User"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Send Invitation Modal */}
+        {showInviteModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-neutral-900 rounded-lg p-6 w-full max-w-md border border-neutral-800">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-white">Send User Invitation</h3>
+                <button onClick={() => setShowInviteModal(false)} className="text-neutral-400 hover:text-white">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-neutral-200">Email Address</label>
+                  <Input
+                    type="email"
+                    value={inviteForm.email}
+                    onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                    placeholder="user@company.com"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-neutral-200">Role</label>
+                  <select
+                    className="flex h-10 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1"
+                    value={inviteForm.role}
+                    onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
+                  >
+                    <option value="admin">Admin - Full access to all features</option>
+                    <option value="accountant">Accountant - Manage finances and reports</option>
+                    <option value="clerk">Clerk - Basic data entry access</option>
+                    <option value="auditor">Auditor - View and review access</option>
+                    <option value="viewer">Viewer - Read-only access</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-neutral-200">Personal Message (Optional)</label>
+                  <textarea
+                    className="flex min-h-[80px] w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1"
+                    value={inviteForm.message}
+                    onChange={(e) => setInviteForm({ ...inviteForm, message: e.target.value })}
+                    placeholder="Add a personal message to the invitation..."
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowInviteModal(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSendInvitation}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Invitation
                 </Button>
               </div>
             </div>

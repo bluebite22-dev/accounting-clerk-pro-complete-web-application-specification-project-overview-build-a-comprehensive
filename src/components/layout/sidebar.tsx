@@ -17,6 +17,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Truck,
+  Edit3,
 } from "lucide-react";
 import { useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
@@ -30,6 +32,8 @@ const menuItems = [
   { href: "/customers", label: "Customers", icon: Users, roles: ["admin", "accountant", "clerk"] },
   { href: "/vendors", label: "Vendors", icon: Building2, roles: ["admin", "accountant", "clerk"] },
   { href: "/stop-orders", label: "Stop Orders", icon: Ban, roles: ["admin", "accountant"] },
+  { href: "/deliveries", label: "Deliveries", icon: Truck, roles: ["admin", "accountant"] },
+  { href: "/forms", label: "Edit Forms", icon: Edit3, roles: ["admin", "accountant", "clerk"] },
   { href: "/budgets", label: "Budgets", icon: PieChart },
   { href: "/reports", label: "Reports", icon: PieChart },
   { href: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
