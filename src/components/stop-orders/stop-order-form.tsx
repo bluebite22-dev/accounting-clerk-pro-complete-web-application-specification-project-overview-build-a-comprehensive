@@ -163,8 +163,8 @@ export default function StopOrderForm({ order, onSave, onCancel }: StopOrderForm
   ];
 
   return (
-    <Card className="max-w-5xl mx-auto bg-neutral-900 border-neutral-800">
-      <CardHeader className="bg-slate-900 text-white">
+    <Card className="max-w-5xl mx-auto bg-neutral-900 border-neutral-800 max-h-[90vh] flex flex-col">
+      <CardHeader className="bg-slate-900 text-white flex-shrink-0">
         <CardTitle className="flex justify-between items-center">
           <div>
             <div className="text-xl">Petrichor5 Limited - Stop Order Form</div>
@@ -175,7 +175,7 @@ export default function StopOrderForm({ order, onSave, onCancel }: StopOrderForm
       </CardHeader>
 
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-6 pt-6 bg-neutral-900">
+        <CardContent className="space-y-6 pt-6 bg-neutral-900 overflow-y-auto flex-1 max-h-[calc(90vh-200px)]">
           
           {/* Header Info */}
           <div className="grid grid-cols-2 gap-4 pb-4 border-b border-neutral-800">
@@ -356,7 +356,7 @@ export default function StopOrderForm({ order, onSave, onCancel }: StopOrderForm
 
         </CardContent>
 
-        <CardFooter className="flex justify-end gap-3 bg-slate-900">
+        <CardFooter className="flex justify-end gap-3 bg-slate-900 flex-shrink-0">
           <Button type="button" variant="outline" onClick={onCancel}>
             <X className="w-4 h-4 mr-2" />Cancel
           </Button>
