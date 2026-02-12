@@ -18,6 +18,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, firstName: string, lastName: string, role: UserRole) => Promise<boolean>;
   logout: () => void;
   setUser: (user: User | null) => void;
 }
@@ -80,6 +81,34 @@ export const useAuthStore = create<AuthState>()(
         
         set({ isLoading: false });
         return false;
+      },
+
+      register: async (email: string, password: string, firstName: string, lastName: string, role: UserRole) => {
+        set({ isLoading: true });
+        
+        // Simulate API call
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        
+        // Check if email already exists
+        if (mockUsers[email]) {
+          set({ isLoading: false });
+          return false;
+        }
+        
+        // Create new user
+        const newUser: User = {
+          id: String(Object.keys(mockUsers).length + 1),
+          email,
+          firstName,
+          lastName,
+          role,
+          companyId: "comp_1",
+        };
+        
+        mockUsers[email] = { password, user: newUser };
+        
+        set({ isLoading: false });
+        return true;
       },
 
       logout: () => {

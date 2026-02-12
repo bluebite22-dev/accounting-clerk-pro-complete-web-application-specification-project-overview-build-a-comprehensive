@@ -2,51 +2,152 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore, type UserRole } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DollarSign, Eye, EyeOff, Loader2 } from "lucide-react";
+import { DollarSign, Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading } = useAuthStore();
+  const { login, register, isLoading } = useAuthStore();
+  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [role, setRole] = useState<UserRole>("clerk");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
-    const success = await login(email, password);
-    if (success) {
-      router.push("/dashboard");
+    if (isRegister) {
+      // Registration
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+      if (!firstName || !lastName || !email || !password) {
+        setError("Please fill in all fields");
+        return;
+      }
+      
+      const success = await register(email, password, firstName, lastName, role);
+      if (success) {
+        setSuccess("Account created successfully! Please sign in.");
+        setIsRegister(false);
+        // Clear form
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+        setFirstName("");
+        setLastName("");
+      } else {
+        setError("Email already registered");
+      }
     } else {
-      setError("Invalid email or password");
+      // Login
+      const success = await login(email, password);
+      if (success) {
+        router.push("/dashboard");
+      } else {
+        setError("Invalid email or password");
+      }
     }
+  };
+
+  const toggleMode = () => {
+    setIsRegister(!isRegister);
+    setError("");
+    setSuccess("");
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-950 p-4">
       <div className="w-full max-w-md space-y-8">
-        {/* Logo */}
+        {/* Header */}
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600">
             <DollarSign className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Accounting Clerk Pro</h1>
-          <p className="mt-2 text-neutral-400">Sign in to your account</p>
+          <h1 className="text-3xl font-bold text-white">
+            {isRegister ? "Create Account" : "Accounting Clerk Pro"}
+          </h1>
+          <p className="mt-2 text-neutral-400">
+            {isRegister ? "Register for access" : "Sign in to your account"}
+          </p>
         </div>
 
-        {/* Login form */}
+        {/* Form */}
         <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
                 {error}
               </div>
+            )}
+
+            {success && (
+              <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-sm text-green-400">
+                {success}
+              </div>
+            )}
+
+            {isRegister && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="firstName" className="block text-sm font-medium text-neutral-200">
+                      First Name
+                    </label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="John"
+                      required={isRegister}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="lastName" className="block text-sm font-medium text-neutral-200">
+                      Last Name
+                    </label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Doe"
+                      required={isRegister}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="role" className="block text-sm font-medium text-neutral-200">
+                    Role
+                  </label>
+                  <select
+                    id="role"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as UserRole)}
+                    className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="clerk">Clerk - Basic data entry</option>
+                    <option value="accountant">Accountant - Manage finances</option>
+                    <option value="auditor">Auditor - View and review</option>
+                    <option value="viewer">Viewer - Read-only</option>
+                    <option value="admin">Admin - Full access</option>
+                  </select>
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
@@ -65,7 +166,7 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <label htmlFor="password" className="block text-sm font-medium text-neutral-200">
-                Password
+                {isRegister ? "Create Password" : "Password"}
               </label>
               <div className="relative">
                 <Input
@@ -73,7 +174,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder={isRegister ? "Create a password" : "Enter your password"}
                   required
                 />
                 <button
@@ -86,26 +187,49 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-700 bg-neutral-800 text-blue-500 focus:ring-blue-500"
+            {isRegister && (
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-neutral-200">
+                  Confirm Password
+                </label>
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your password"
+                  required={isRegister}
                 />
-                <span className="text-sm text-neutral-400">Remember me</span>
-              </label>
-              <button type="button" className="text-sm text-blue-400 hover:underline">
-                Forgot password?
-              </button>
-            </div>
+              </div>
+            )}
+
+            {!isRegister && (
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-neutral-700 bg-neutral-800 text-blue-500 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-neutral-400">Remember me</span>
+                </label>
+                <button type="button" className="text-sm text-blue-400 hover:underline">
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  {isRegister ? "Creating account..." : "Signing in..."}
+                </>
+              ) : isRegister ? (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Create Account
                 </>
               ) : (
                 "Sign in"
@@ -113,15 +237,19 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Demo credentials */}
-          <div className="mt-6 rounded-lg bg-neutral-800/50 p-4">
-            <p className="mb-2 text-xs font-medium text-neutral-400">Demo Credentials:</p>
-            <div className="space-y-1 text-xs text-neutral-500">
-              <p><span className="text-neutral-400">Admin:</span> admin@company.com / admin123</p>
-              <p><span className="text-neutral-400">Accountant:</span> accountant@company.com / acc123</p>
-              <p><span className="text-neutral-400">Clerk:</span> clerk@company.com / clerk123</p>
-            </div>
-          </div>
+          {!isRegister && (
+            <>
+              {/* Demo credentials */}
+              <div className="mt-6 rounded-lg bg-neutral-800/50 p-4">
+                <p className="mb-2 text-xs font-medium text-neutral-400">Demo Credentials:</p>
+                <div className="space-y-1 text-xs text-neutral-500">
+                  <p><span className="text-neutral-400">Admin:</span> admin@company.com / admin123</p>
+                  <p><span className="text-neutral-400">Accountant:</span> accountant@company.com / acc123</p>
+                  <p><span className="text-neutral-400">Clerk:</span> clerk@company.com / clerk123</p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Social login */}
@@ -167,8 +295,21 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-sm text-neutral-500">
-          Do not have an account?{" "}
-          <button className="text-blue-400 hover:underline">Contact administrator</button>
+          {isRegister ? (
+            <>
+              Already have an account?{" "}
+              <button onClick={toggleMode} className="text-blue-400 hover:underline">
+                Sign in
+              </button>
+            </>
+          ) : (
+            <>
+              Do not have an account?{" "}
+              <button onClick={toggleMode} className="text-blue-400 hover:underline">
+                Create account
+              </button>
+            </>
+          )}
         </p>
       </div>
     </div>
