@@ -199,21 +199,53 @@ export const billLineItems = sqliteTable("bill_line_items", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 
-// Stop Orders
+// Stop Orders (Payroll Deduction Authorizations)
 export const stopOrders = sqliteTable("stop_orders", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
-  type: text("type", { enum: ["amount", "vendor", "category", "recurring", "date"] }).notNull(),
-  target: text("target"), // Vendor ID, Category ID, or amount threshold
-  conditions: text("conditions"), // JSON for complex conditions
-  reason: text("reason"),
+  
+  // Form metadata
+  formDate: integer("form_date", { mode: "timestamp" }),
+  type: text("type", { enum: ["amount", "vendor", "category", "recurring", "date", "payroll"] }).notNull().default("payroll"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  effectiveFrom: integer("effective_from", { mode: "timestamp" }).notNull(),
+  
+  // Employee details
+  fullName: text("full_name"),
+  sex: text("sex", { enum: ["M", "F"] }),
+  nrcNo: text("nrc_no"),
+  manNo: text("man_no"),
+  rank: text("rank", { enum: ["officer", "soldier", "civilian"] }),
+  barrack: text("barrack"),
+  district: text("district"),
+  province: text("province"),
+  mobile: text("mobile"),
+  email: text("email"),
+  
+  // Deduction details
+  deductionAmount: real("deduction_amount"),
+  durationMonths: integer("duration_months"),
+  startMonth: text("start_month"), // YYYY-MM format
+  monthlyDeductionFrom: integer("monthly_deduction_from", { mode: "timestamp" }),
+  monthlyDeductionTo: integer("monthly_deduction_to", { mode: "timestamp" }),
+  amountInWords: text("amount_in_words"),
+  authorizedBy: text("authorized_by"),
+  
+  // Remittance details
+  accountNumber: text("account_number"),
+  companyName: text("company_name"),
+  
+  // Legacy fields (for backward compatibility)
+  target: text("target"),
+  conditions: text("conditions"),
+  reason: text("reason"),
+  effectiveFrom: integer("effective_from", { mode: "timestamp" }),
   expiresAt: integer("expires_at", { mode: "timestamp" }),
   notifyOnTrigger: integer("notify_on_trigger", { mode: "boolean" }).default(true),
   requireOverride: integer("require_override", { mode: "boolean" }).default(true),
   triggeredCount: integer("triggered_count").default(0),
   blockedAmount: real("blocked_amount").default(0),
+  
+  // Audit
   createdBy: text("created_by").references(() => users.id),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),

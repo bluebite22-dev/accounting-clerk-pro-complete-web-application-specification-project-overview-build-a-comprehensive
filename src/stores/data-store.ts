@@ -89,12 +89,42 @@ export interface Category {
 
 export interface StopOrder {
   id: string;
-  type: "amount" | "vendor" | "category" | "recurring" | "date";
-  target: string;
-  conditions?: Record<string, unknown>;
-  reason: string;
+  
+  // Form metadata
+  formDate?: string;
+  type: "amount" | "vendor" | "category" | "recurring" | "date" | "payroll";
   isActive: boolean;
-  effectiveFrom: string;
+  
+  // Employee details (for payroll)
+  fullName?: string;
+  sex?: "M" | "F";
+  nrcNo?: string;
+  manNo?: string;
+  rank?: "officer" | "soldier" | "civilian";
+  barrack?: string;
+  district?: string;
+  province?: string;
+  mobile?: string;
+  email?: string;
+  
+  // Deduction details (for payroll)
+  deductionAmount?: number;
+  durationMonths?: number;
+  startMonth?: string;
+  monthlyDeductionFrom?: string;
+  monthlyDeductionTo?: string;
+  amountInWords?: string;
+  authorizedBy?: string;
+  
+  // Remittance details
+  accountNumber?: string;
+  companyName?: string;
+  
+  // Legacy fields (for backward compatibility)
+  target?: string;
+  conditions?: Record<string, unknown>;
+  reason?: string;
+  effectiveFrom?: string;
   expiresAt?: string;
   notifyOnTrigger: boolean;
   requireOverride: boolean;
@@ -332,39 +362,90 @@ const generateMockStopOrders = (): StopOrder[] => {
   return [
     {
       id: "stop_1",
-      type: "vendor",
-      target: "vend_5",
-      reason: "Suspected fraudulent activity",
+      type: "payroll",
+      fullName: "CHIPOTA JAMES",
+      sex: "M",
+      nrcNo: "123456/78/1",
+      manNo: "ARMY/2019/045",
+      rank: "officer",
+      barrack: "Lusaka Barracks",
+      district: "Lusaka",
+      province: "Lusaka",
+      mobile: "+260 97X XXX XXX",
+      deductionAmount: 2500,
+      durationMonths: 6,
+      startMonth: "2024-01",
+      monthlyDeductionFrom: "2024-01-01",
+      monthlyDeductionTo: "2024-06-30",
+      amountInWords: "Two Thousand Five Hundred Kwacha Only",
+      authorizedBy: "Col. M. Banda",
+      accountNumber: "9060160002109",
+      companyName: "Petrichor Five General Dealers",
+      formDate: "2024-01-15",
       isActive: true,
-      effectiveFrom: new Date().toISOString(),
       notifyOnTrigger: true,
       requireOverride: true,
       triggeredCount: 2,
-      blockedAmount: 45000,
+      blockedAmount: 5000,
+      reason: "Salary deduction authorization",
     },
     {
       id: "stop_2",
-      type: "amount",
-      target: "5000",
-      reason: "Large transactions require manager approval",
+      type: "payroll",
+      fullName: "MULENGA PRECIOUS",
+      sex: "F",
+      nrcNo: "234567/89/2",
+      manNo: "ARMY/2020/112",
+      rank: "soldier",
+      barrack: "Kabwe Barracks",
+      district: "Central",
+      province: "Central",
+      mobile: "+260 96X XXX XXX",
+      deductionAmount: 1500,
+      durationMonths: 12,
+      startMonth: "2024-02",
+      monthlyDeductionFrom: "2024-02-01",
+      monthlyDeductionTo: "2025-01-31",
+      amountInWords: "One Thousand Five Hundred Kwacha Only",
+      authorizedBy: "Lt. Col. S. Mwansa",
+      accountNumber: "9060160002109",
+      companyName: "Petrichor Five General Dealers",
+      formDate: "2024-02-01",
       isActive: true,
-      effectiveFrom: new Date().toISOString(),
       notifyOnTrigger: true,
       requireOverride: true,
-      triggeredCount: 8,
-      blockedAmount: 125000,
+      triggeredCount: 5,
+      blockedAmount: 7500,
+      reason: "Salary deduction authorization",
     },
     {
       id: "stop_3",
-      type: "category",
-      target: "cat_6",
-      reason: "Marketing budget exceeded - requires approval",
+      type: "payroll",
+      fullName: "CHANDA ROBERT",
+      sex: "M",
+      nrcNo: "345678/90/3",
+      manNo: "ARMY/2018/089",
+      rank: "civilian",
+      barrack: "Nairobi Camp",
+      district: "Livingstone",
+      province: "Southern",
+      mobile: "+260 95X XXX XXX",
+      deductionAmount: 3000,
+      durationMonths: 3,
+      startMonth: "2024-03",
+      monthlyDeductionFrom: "2024-03-01",
+      monthlyDeductionTo: "2024-05-31",
+      amountInWords: "Three Thousand Kwacha Only",
+      authorizedBy: "Maj. T. Phiri",
+      accountNumber: "9060160002109",
+      companyName: "Petrichor Five General Dealers",
+      formDate: "2024-03-10",
       isActive: true,
-      effectiveFrom: new Date().toISOString(),
       notifyOnTrigger: true,
       requireOverride: true,
-      triggeredCount: 3,
-      blockedAmount: 8500,
+      triggeredCount: 1,
+      blockedAmount: 3000,
+      reason: "Salary deduction authorization",
     },
   ];
 };
