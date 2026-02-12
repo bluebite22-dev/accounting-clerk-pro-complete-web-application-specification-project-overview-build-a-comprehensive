@@ -9,16 +9,22 @@ import { useAuthStore } from "@/stores/auth-store";
 import { Avatar } from "@/components/ui/avatar";
 import {
   User,
+  Users,
   Building2,
   Bell,
   Shield,
   Palette,
   Globe,
   Save,
+  Plus,
+  Edit,
+  Trash2,
+  X,
 } from "lucide-react";
 
 const settingsSections = [
   { id: "profile", label: "Profile", icon: User },
+  { id: "users", label: "Users", icon: Users },
   { id: "company", label: "Company", icon: Building2 },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "security", label: "Security", icon: Shield },
@@ -76,6 +82,61 @@ export default function SettingsPage() {
     twoFactorEnabled: false,
     sessionTimeout: "30",
   });
+
+  // Users management state
+  const [users, setUsers] = useState([
+    { id: "1", firstName: "John", lastName: "Admin", email: "admin@company.com", role: "admin", isActive: true },
+    { id: "2", firstName: "Sarah", lastName: "Accountant", email: "sarah@company.com", role: "accountant", isActive: true },
+    { id: "3", firstName: "Mike", lastName: "Clerk", email: "mike@company.com", role: "clerk", isActive: true },
+  ]);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<typeof users[0] | null>(null);
+  const [userForm, setUserForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    role: "clerk",
+    password: "",
+  });
+
+  const handleAddUser = () => {
+    setEditingUser(null);
+    setUserForm({ firstName: "", lastName: "", email: "", role: "clerk", password: "" });
+    setShowUserModal(true);
+  };
+
+  const handleEditUser = (user: typeof users[0]) => {
+    setEditingUser(user);
+    setUserForm({ firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role, password: "" });
+    setShowUserModal(true);
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    if (confirm("Are you sure you want to delete this user?")) {
+      setUsers(users.filter(u => u.id !== userId));
+    }
+  };
+
+  const handleSaveUser = () => {
+    if (editingUser) {
+      setUsers(users.map(u => 
+        u.id === editingUser.id 
+          ? { ...u, firstName: userForm.firstName, lastName: userForm.lastName, email: userForm.email, role: userForm.role as any }
+          : u
+      ));
+    } else {
+      const newUser = {
+        id: Date.now().toString(),
+        firstName: userForm.firstName,
+        lastName: userForm.lastName,
+        email: userForm.email,
+        role: userForm.role as any,
+        isActive: true,
+      };
+      setUsers([...users, newUser]);
+    }
+    setShowUserModal(false);
+  };
 
   const handleSave = () => {
     setSaved(true);
@@ -190,6 +251,81 @@ export default function SettingsPage() {
                       <Save className="mr-2 h-4 w-4" />
                       Save Changes
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeSection === "users" && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription>Manage users and their access permissions</CardDescription>
+                  </div>
+                  <Button onClick={handleAddUser}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add User
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-neutral-800">
+                          <th className="pb-3 text-left text-sm font-medium text-neutral-400">User</th>
+                          <th className="pb-3 text-left text-sm font-medium text-neutral-400">Email</th>
+                          <th className="pb-3 text-left text-sm font-medium text-neutral-400">Role</th>
+                          <th className="pb-3 text-left text-sm font-medium text-neutral-400">Status</th>
+                          <th className="pb-3 text-right text-sm font-medium text-neutral-400">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((user) => (
+                          <tr key={user.id} className="border-b border-neutral-800/50">
+                            <td className="py-4">
+                              <div className="flex items-center gap-3">
+                                <Avatar name={`${user.firstName} ${user.lastName}`} size="sm" />
+                                <span className="font-medium text-neutral-100">{user.firstName} {user.lastName}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 text-neutral-400">{user.email}</td>
+                            <td className="py-4">
+                              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                user.role === "admin" ? "bg-purple-500/20 text-purple-400" :
+                                user.role === "accountant" ? "bg-blue-500/20 text-blue-400" :
+                                user.role === "auditor" ? "bg-green-500/20 text-green-400" :
+                                "bg-neutral-500/20 text-neutral-400"
+                              }`}>
+                                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                              </span>
+                            </td>
+                            <td className="py-4">
+                              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                user.isActive ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                              }`}>
+                                {user.isActive ? "Active" : "Inactive"}
+                              </span>
+                            </td>
+                            <td className="py-4 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => handleDeleteUser(user.id)}
+                                  className="text-red-400 hover:text-red-300"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </CardContent>
               </Card>
@@ -539,6 +675,92 @@ export default function SettingsPage() {
         {saved && (
           <div className="fixed bottom-4 right-4 rounded-lg bg-green-600 px-4 py-3 text-white shadow-lg">
             Settings saved successfully!
+          </div>
+        )}
+
+        {/* User Modal */}
+        {showUserModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-md rounded-xl border border-neutral-800 bg-neutral-900 p-6 shadow-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">
+                  {editingUser ? "Edit User" : "Add New User"}
+                </h2>
+                <button 
+                  onClick={() => setShowUserModal(false)}
+                  className="rounded-lg p-2 text-neutral-400 hover:bg-neutral-800 hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-neutral-200">First Name</label>
+                    <Input
+                      value={userForm.firstName}
+                      onChange={(e) => setUserForm({ ...userForm, firstName: e.target.value })}
+                      placeholder="John"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-neutral-200">Last Name</label>
+                    <Input
+                      value={userForm.lastName}
+                      onChange={(e) => setUserForm({ ...userForm, lastName: e.target.value })}
+                      placeholder="Doe"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-neutral-200">Email</label>
+                  <Input
+                    type="email"
+                    value={userForm.email}
+                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                    placeholder="john@company.com"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-neutral-200">Role</label>
+                  <select
+                    className="flex h-10 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={userForm.role}
+                    onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                  >
+                    <option value="admin">Admin - Full access to all features</option>
+                    <option value="accountant">Accountant - Manage finances and reports</option>
+                    <option value="clerk">Clerk - Basic data entry access</option>
+                    <option value="auditor">Auditor - View and review access</option>
+                    <option value="viewer">Viewer - Read-only access</option>
+                  </select>
+                </div>
+                
+                {!editingUser && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-neutral-200">Password</label>
+                    <Input
+                      type="password"
+                      value={userForm.password}
+                      onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                      placeholder="Enter password"
+                    />
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowUserModal(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveUser}>
+                  {editingUser ? "Update User" : "Add User"}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
