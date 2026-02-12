@@ -65,9 +65,18 @@ export interface Customer {
   name: string;
   email: string;
   phone?: string;
+  phone2?: string;
+  address?: string;
+  contactPerson?: string;
+  tin?: string;
+  bankName?: string;
+  bankAccount?: string;
+  paymentTerms?: string;
   creditLimit: number;
-  paymentTerms: number;
+  paymentTermsNum: number;
   balance: number;
+  status: "active" | "inactive";
+  createdAt?: string;
 }
 
 export interface Vendor {
@@ -90,17 +99,19 @@ export interface Category {
 export interface StopOrder {
   id: string;
   
-  // Form metadata
-  formDate?: string;
+  // Form metadata (snake_case for Petrichor5 compatibility)
+  form_number?: string;
+  form_date?: string;
+  status?: "draft" | "pending_approval" | "active" | "completed" | "cancelled" | "rejected";
   type: "amount" | "vendor" | "category" | "recurring" | "date" | "payroll";
   isActive: boolean;
   
   // Employee details (for payroll)
-  fullName?: string;
+  full_name?: string;
   sex?: "M" | "F";
-  nrcNo?: string;
-  manNo?: string;
-  rank?: "officer" | "soldier" | "civilian";
+  nrc_no?: string;
+  man_no?: string;
+  rank?: string;
   barrack?: string;
   district?: string;
   province?: string;
@@ -108,19 +119,29 @@ export interface StopOrder {
   email?: string;
   
   // Deduction details (for payroll)
-  deductionAmount?: number;
-  durationMonths?: number;
-  startMonth?: string;
-  monthlyDeductionFrom?: string;
-  monthlyDeductionTo?: string;
-  amountInWords?: string;
-  authorizedBy?: string;
+  deduction_amount?: number;
+  duration_months?: number;
+  start_date?: string;
+  monthly_deduction_from?: string;
+  monthly_deduction_to?: string;
+  amount_in_words?: string;
+  authorized_by?: string;
   
   // Remittance details
-  accountNumber?: string;
-  companyName?: string;
+  account_number?: string;
+  company_name?: string;
+  
+  // Internal fields
+  verification_hash?: string;
+  client_name?: string;
+  delivery_date?: string;
+  delivered_by?: string;
+  product_no?: string;
   
   // Legacy fields (for backward compatibility)
+  fullName?: string;
+  nrcNo?: string;
+  manNo?: string;
   target?: string;
   conditions?: Record<string, unknown>;
   reason?: string;
@@ -325,11 +346,11 @@ const generateMockBills = (): Bill[] => {
 
 const generateMockCustomers = (): Customer[] => {
   return [
-    { id: "cust_1", name: "Acme Corp", email: "billing@acme.com", phone: "555-0101", creditLimit: 50000, paymentTerms: 30, balance: 12500 },
-    { id: "cust_2", name: "XYZ Ltd", email: "accounts@xyz.com", phone: "555-0102", creditLimit: 30000, paymentTerms: 30, balance: 8500 },
-    { id: "cust_3", name: "Smith & Co", email: "finance@smith.com", phone: "555-0103", creditLimit: 20000, paymentTerms: 45, balance: 3200 },
-    { id: "cust_4", name: "Johnson Inc", email: "pay@johnson.com", phone: "555-0104", creditLimit: 40000, paymentTerms: 30, balance: 0 },
-    { id: "cust_5", name: "Tech Solutions", email: "ar@techsol.com", phone: "555-0105", creditLimit: 25000, paymentTerms: 60, balance: 15800 },
+    { id: "cust_1", name: "Acme Corp", email: "billing@acme.com", phone: "555-0101", creditLimit: 50000, paymentTermsNum: 30, balance: 12500, status: "active", paymentTerms: "30 days" },
+    { id: "cust_2", name: "XYZ Ltd", email: "accounts@xyz.com", phone: "555-0102", creditLimit: 30000, paymentTermsNum: 30, balance: 8500, status: "active", paymentTerms: "30 days" },
+    { id: "cust_3", name: "Smith & Co", email: "finance@smith.com", phone: "555-0103", creditLimit: 20000, paymentTermsNum: 45, balance: 3200, status: "active", paymentTerms: "45 days" },
+    { id: "cust_4", name: "Johnson Inc", email: "pay@johnson.com", phone: "555-0104", creditLimit: 40000, paymentTermsNum: 30, balance: 0, status: "active", paymentTerms: "30 days" },
+    { id: "cust_5", name: "Tech Solutions", email: "ar@techsol.com", phone: "555-0105", creditLimit: 25000, paymentTermsNum: 60, balance: 15800, status: "active", paymentTerms: "60 days" },
   ];
 };
 
@@ -363,25 +384,26 @@ const generateMockStopOrders = (): StopOrder[] => {
     {
       id: "stop_1",
       type: "payroll",
-      fullName: "CHIPOTA JAMES",
+      full_name: "CHIPOTA JAMES",
       sex: "M",
-      nrcNo: "123456/78/1",
-      manNo: "ARMY/2019/045",
-      rank: "officer",
+      nrc_no: "123456/78/1",
+      man_no: "ARMY/2019/045",
+      rank: "Officer",
       barrack: "Lusaka Barracks",
       district: "Lusaka",
       province: "Lusaka",
       mobile: "+260 97X XXX XXX",
-      deductionAmount: 2500,
-      durationMonths: 6,
-      startMonth: "2024-01",
-      monthlyDeductionFrom: "2024-01-01",
-      monthlyDeductionTo: "2024-06-30",
-      amountInWords: "Two Thousand Five Hundred Kwacha Only",
-      authorizedBy: "Col. M. Banda",
-      accountNumber: "9060160002109",
-      companyName: "Petrichor Five General Dealers",
-      formDate: "2024-01-15",
+      deduction_amount: 2500,
+      duration_months: 6,
+      start_date: "2024-01",
+      monthly_deduction_from: "2024-01-01",
+      monthly_deduction_to: "2024-06-30",
+      amount_in_words: "Two Thousand Five Hundred Kwacha Only",
+      authorized_by: "Col. M. Banda",
+      account_number: "9060160002109",
+      company_name: "Petrichor Five General Dealers",
+      form_date: "2024-01-15",
+      status: "active",
       isActive: true,
       notifyOnTrigger: true,
       requireOverride: true,
@@ -392,25 +414,26 @@ const generateMockStopOrders = (): StopOrder[] => {
     {
       id: "stop_2",
       type: "payroll",
-      fullName: "MULENGA PRECIOUS",
+      full_name: "MULENGA PRECIOUS",
       sex: "F",
-      nrcNo: "234567/89/2",
-      manNo: "ARMY/2020/112",
-      rank: "soldier",
+      nrc_no: "234567/89/2",
+      man_no: "ARMY/2020/112",
+      rank: "Soldier",
       barrack: "Kabwe Barracks",
       district: "Central",
       province: "Central",
       mobile: "+260 96X XXX XXX",
-      deductionAmount: 1500,
-      durationMonths: 12,
-      startMonth: "2024-02",
-      monthlyDeductionFrom: "2024-02-01",
-      monthlyDeductionTo: "2025-01-31",
-      amountInWords: "One Thousand Five Hundred Kwacha Only",
-      authorizedBy: "Lt. Col. S. Mwansa",
-      accountNumber: "9060160002109",
-      companyName: "Petrichor Five General Dealers",
-      formDate: "2024-02-01",
+      deduction_amount: 1500,
+      duration_months: 12,
+      start_date: "2024-02",
+      monthly_deduction_from: "2024-02-01",
+      monthly_deduction_to: "2025-01-31",
+      amount_in_words: "One Thousand Five Hundred Kwacha Only",
+      authorized_by: "Lt. Col. S. Mwansa",
+      account_number: "9060160002109",
+      company_name: "Petrichor Five General Dealers",
+      form_date: "2024-02-01",
+      status: "active",
       isActive: true,
       notifyOnTrigger: true,
       requireOverride: true,
@@ -421,25 +444,26 @@ const generateMockStopOrders = (): StopOrder[] => {
     {
       id: "stop_3",
       type: "payroll",
-      fullName: "CHANDA ROBERT",
+      full_name: "CHANDA ROBERT",
       sex: "M",
-      nrcNo: "345678/90/3",
-      manNo: "ARMY/2018/089",
-      rank: "civilian",
+      nrc_no: "345678/90/3",
+      man_no: "ARMY/2018/089",
+      rank: "Civilian",
       barrack: "Nairobi Camp",
       district: "Livingstone",
       province: "Southern",
       mobile: "+260 95X XXX XXX",
-      deductionAmount: 3000,
-      durationMonths: 3,
-      startMonth: "2024-03",
-      monthlyDeductionFrom: "2024-03-01",
-      monthlyDeductionTo: "2024-05-31",
-      amountInWords: "Three Thousand Kwacha Only",
-      authorizedBy: "Maj. T. Phiri",
-      accountNumber: "9060160002109",
-      companyName: "Petrichor Five General Dealers",
-      formDate: "2024-03-10",
+      deduction_amount: 3000,
+      duration_months: 3,
+      start_date: "2024-03",
+      monthly_deduction_from: "2024-03-01",
+      monthly_deduction_to: "2024-05-31",
+      amount_in_words: "Three Thousand Kwacha Only",
+      authorized_by: "Maj. T. Phiri",
+      account_number: "9060160002109",
+      company_name: "Petrichor Five General Dealers",
+      form_date: "2024-03-10",
+      status: "active",
       isActive: true,
       notifyOnTrigger: true,
       requireOverride: true,

@@ -16,7 +16,7 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
-import { useDataStore } from "@/stores/data-store";
+import { useDataStore, Customer } from "@/stores/data-store";
 import { formatCurrency, generateId } from "@/lib/utils";
 import {
   Plus,
@@ -59,14 +59,16 @@ export default function CustomersPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newCustomer = {
+    const newCustomer: Customer = {
       id: generateId(),
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
       creditLimit: parseFloat(formData.creditLimit) || 0,
-      paymentTerms: parseInt(formData.paymentTerms) || 30,
+      paymentTermsNum: parseInt(formData.paymentTerms) || 30,
       balance: 0,
+      status: "active",
+      paymentTerms: `${parseInt(formData.paymentTerms) || 30} days`,
     };
 
     addCustomer(newCustomer);
