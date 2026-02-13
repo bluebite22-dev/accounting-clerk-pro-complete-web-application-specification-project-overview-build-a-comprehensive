@@ -1,9 +1,10 @@
 "use client";
 
-import { Bell, Search, Menu, Sun, Moon, Monitor } from "lucide-react";
+import { Bell, Search, Menu, Sun, Moon, Monitor, Cloud, CloudOff, RefreshCw } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useNotificationStore, showToast } from "@/stores/notification-store";
 import { useThemeStore } from "@/stores/theme-store";
+import { useSync } from "@/stores/sync-store";
 import { Avatar } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { user } = useAuthStore();
   const { notifications, markAsRead, markAllAsRead } = useNotificationStore();
   const { theme, setTheme } = useThemeStore();
+  const { isOnline, syncStatus, pendingCount, syncPendingItems } = useSync();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
 
@@ -62,6 +64,40 @@ export function Header({ onMenuClick }: HeaderProps) {
 
       {/* Right section */}
       <div className="flex items-center gap-3">
+        {/* Sync Status */}
+        <div className="flex items-center gap-2">
+          {syncStatus === "syncing" ? (
+            <div className="flex items-center gap-1 text-blue-400">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span className="text-xs hidden sm:inline">Syncing...</span>
+            </div>
+          ) : !isOnline ? (
+            <div className="flex items-center gap-1 text-amber-400" title="Offline - changes will sync when connected">
+              <CloudOff className="h-4 w-4" />
+              {pendingCount > 0 && (
+                <span className="text-xs bg-amber-500/20 px-1.5 py-0.5 rounded">
+                  {pendingCount}
+                </span>
+              )}
+            </div>
+          ) : pendingCount > 0 ? (
+            <button
+              onClick={syncPendingItems}
+              className="flex items-center gap-1 text-amber-400 hover:text-amber-300"
+              title="Click to sync pending changes"
+            >
+              <Cloud className="h-4 w-4" />
+              <span className="text-xs bg-amber-500/20 px-1.5 py-0.5 rounded">
+                {pendingCount}
+              </span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-1 text-emerald-400" title="Synced">
+              <Cloud className="h-4 w-4" />
+            </div>
+          )}
+        </div>
+
         {/* Theme toggle */}
         <div className="relative">
           <Button

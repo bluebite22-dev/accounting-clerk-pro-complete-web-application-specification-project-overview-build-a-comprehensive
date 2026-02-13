@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDataStore } from "@/stores/data-store";
+import { useSyncStore } from "@/stores/sync-store";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { cn } from "@/lib/utils";
@@ -16,16 +17,30 @@ export function AppLayout({ children }: AppLayoutProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const initializeMockData = useDataStore((state) => state.initializeMockData);
+  const initializeSync = useSyncStore((state) => state.initializeSync);
+  const saveToOffline = useSyncStore((state) => state.saveToOffline);
+  const loadFromOffline = useSyncStore((state) => state.loadFromOffline);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/login");
     } else {
-      // Initialize mock data when user is authenticated
+      // Initialize sync system
+      initializeSync();
+      // Load offline data first
+      loadFromOffline();
+      // Then initialize mock data
       initializeMockData();
     }
-  }, [isAuthenticated, router, initializeMockData]);
+  }, [isAuthenticated, router, initializeMockData, initializeSync, loadFromOffline]);
+
+  // Auto-save to offline storage on data changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      saveToOffline();
+    }
+  }, [isAuthenticated, saveToOffline]);
 
   if (!isAuthenticated) {
     return (
