@@ -330,6 +330,99 @@ export const notifications = sqliteTable("notifications", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 
+// Webhooks
+export const webhooks = sqliteTable("webhooks", {
+  id: text("id").primaryKey(),
+  companyId: text("company_id").notNull().references(() => companies.id),
+  url: text("url").notNull(),
+  events: text("events").notNull(),
+  secret: text("secret").notNull(),
+  description: text("description"),
+  status: text("status", { enum: ["active", "paused", "failed"] }).notNull().default("active"),
+  failureCount: integer("failure_count").notNull().default(0),
+  lastTriggered: integer("last_triggered", { mode: "timestamp" }),
+  lastFailedAt: integer("last_failed_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+// Webhook Logs
+export const webhookLogs = sqliteTable("webhook_logs", {
+  id: text("id").primaryKey(),
+  webhookId: text("webhook_id").notNull().references(() => webhooks.id),
+  event: text("event").notNull(),
+  payload: text("payload"),
+  status: text("status", { enum: ["delivered", "failed", "pending"] }).notNull().default("pending"),
+  responseCode: integer("response_code"),
+  responseBody: text("response_body"),
+  errorMessage: text("error_message"),
+  retryCount: integer("retry_count").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+// Scheduled Reports
+export const scheduledReports = sqliteTable("scheduled_reports", {
+  id: text("id").primaryKey(),
+  companyId: text("company_id").notNull().references(() => companies.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  reportType: text("report_type", { enum: ["profit-loss", "cash-flow", "balance-sheet", "aging", "custom"] }).notNull(),
+  schedule: text("schedule").notNull(),
+  recipients: text("recipients").notNull(),
+  format: text("format", { enum: ["pdf", "excel", "csv", "json"] }).notNull().default("pdf"),
+  filters: text("filters"),
+  lastRunAt: integer("last_run_at", { mode: "timestamp" }),
+  nextRunAt: integer("next_run_at", { mode: "timestamp" }),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+// Report History
+export const reportHistory = sqliteTable("report_history", {
+  id: text("id").primaryKey(),
+  reportId: text("report_id").notNull().references(() => scheduledReports.id),
+  companyId: text("company_id").notNull().references(() => companies.id),
+  generatedAt: integer("generated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  status: text("status", { enum: ["generating", "completed", "failed"] }).notNull().default("generating"),
+  fileUrl: text("file_url"),
+  errorMessage: text("error_message"),
+  recipientCount: integer("recipient_count").default(0),
+});
+
+// Custom Report Templates
+export const customReports = sqliteTable("custom_reports", {
+  id: text("id").primaryKey(),
+  companyId: text("company_id").notNull().references(() => companies.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  layout: text("layout").notNull(),
+  columns: text("columns").notNull(),
+  filters: text("filters"),
+  sortBy: text("sort_by"),
+  sortDir: text("sort_dir", { enum: ["asc", "desc"] }),
+  groupBy: text("group_by"),
+  calculations: text("calculations"),
+  isPublic: integer("is_public", { mode: "boolean" }).default(false),
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+// Integration Credentials
+export const integrationCredentials = sqliteTable("integration_credentials", {
+  id: text("id").primaryKey(),
+  companyId: text("company_id").notNull().references(() => companies.id),
+  integrationType: text("integration_type", { enum: ["quickbooks", "xero", "stripe", "paypal", "sage"] }).notNull(),
+  credentials: text("credentials").notNull(),
+  status: text("status", { enum: ["active", "expired", "revoked"] }).notNull().default("active"),
+  lastSyncAt: integer("last_sync_at", { mode: "timestamp" }),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -345,3 +438,9 @@ export type Budget = typeof budgets.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type Webhook = typeof webhooks.$inferSelect;
+export type WebhookLog = typeof webhookLogs.$inferSelect;
+export type ScheduledReport = typeof scheduledReports.$inferSelect;
+export type ReportHistory = typeof reportHistory.$inferSelect;
+export type CustomReport = typeof customReports.$inferSelect;
+export type IntegrationCredential = typeof integrationCredentials.$inferSelect;
