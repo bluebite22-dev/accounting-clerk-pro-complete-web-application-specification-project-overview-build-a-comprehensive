@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import * as db from "@/db/queries";
 
 export interface Transaction {
   id: string;
@@ -194,6 +195,7 @@ interface DataState {
   
   // UI State
   isLoading: boolean;
+  isDbConnected: boolean;
   
   // Actions - Transactions
   addTransaction: (transaction: Transaction) => void;
@@ -228,11 +230,14 @@ interface DataState {
   updateBudget: (id: string, updates: Partial<Budget>) => void;
   deleteBudget: (id: string) => void;
   
-  // Initialize with mock data
+  // Database initialization
+  initializeFromDatabase: () => Promise<void>;
+  
+  // Fallback to mock data
   initializeMockData: () => void;
 }
 
-// Generate mock data
+// Generate mock data for fallback
 const generateMockTransactions = (): Transaction[] => {
   const categories = [
     { id: "cat_1", name: "Sales Revenue", type: "income" as const },
@@ -519,7 +524,7 @@ const generateMockBudgets = (): Budget[] => {
   ];
 };
 
-export const useDataStore = create<DataState>((set) => ({
+export const useDataStore = create<DataState>((set, get) => ({
   transactions: [],
   invoices: [],
   bills: [],
@@ -529,6 +534,7 @@ export const useDataStore = create<DataState>((set) => ({
   stopOrders: [],
   budgets: [],
   isLoading: false,
+  isDbConnected: false,
 
   addTransaction: (transaction) =>
     set((state) => ({ transactions: [transaction, ...state.transactions] })),
@@ -624,6 +630,123 @@ export const useDataStore = create<DataState>((set) => ({
     set((state) => ({
       budgets: state.budgets.filter((b) => b.id !== id),
     })),
+
+  // Try to load from database, fallback to mock data
+  initializeFromDatabase: async () => {
+    set({ isLoading: true });
+    
+    try {
+      // Initialize the database (create tables and seed if needed)
+      await db.initializeDatabase();
+      
+      // Try to fetch data from database
+      const [customers, vendors, categories, stopOrders, budgets] = await Promise.all([
+        db.getCustomers(),
+        db.getVendors(),
+        db.getCategories(),
+        db.getStopOrders(),
+        db.getBudgets(),
+      ]);
+      
+      // Map database records to store interfaces
+      const mappedCustomers: Customer[] = customers.map(c => ({
+        id: c.id,
+        name: c.name,
+        email: c.email || "",
+        phone: c.phone || undefined,
+        address: c.address || undefined,
+        creditLimit: c.creditLimit || 0,
+        paymentTermsNum: c.paymentTerms || 30,
+        balance: 0,
+        status: c.isActive ? "active" : "inactive",
+        createdAt: c.createdAt?.toISOString(),
+      }));
+      
+      const mappedVendors: Vendor[] = vendors.map(v => ({
+        id: v.id,
+        name: v.name,
+        email: v.email || undefined,
+        phone: v.phone || undefined,
+        paymentTerms: v.paymentTerms || 30,
+        balance: 0,
+      }));
+      
+      const mappedCategories: Category[] = categories.map(c => ({
+        id: c.id,
+        name: c.name,
+        type: c.type as "income" | "expense" | "both",
+        color: c.color || "#6B7280",
+        icon: c.icon || undefined,
+      }));
+      
+      const mappedStopOrders: StopOrder[] = stopOrders.map(s => ({
+        id: s.id,
+        type: s.type as StopOrder["type"],
+        isActive: s.isActive,
+        full_name: s.fullName || undefined,
+        sex: s.sex as StopOrder["sex"],
+        nrc_no: s.nrcNo || undefined,
+        man_no: s.manNo || undefined,
+        rank: s.rank as StopOrder["rank"],
+        barrack: s.barrack || undefined,
+        district: s.district || undefined,
+        province: s.province || undefined,
+        mobile: s.mobile || undefined,
+        email: s.email || undefined,
+        deduction_amount: s.deductionAmount || undefined,
+        duration_months: s.durationMonths || undefined,
+        start_date: s.startMonth || undefined,
+        monthly_deduction_from: s.monthlyDeductionFrom?.toISOString(),
+        monthly_deduction_to: s.monthlyDeductionTo?.toISOString(),
+        amount_in_words: s.amountInWords || undefined,
+        authorized_by: s.authorizedBy || undefined,
+        account_number: s.accountNumber || undefined,
+        company_name: s.companyName || undefined,
+        notifyOnTrigger: s.notifyOnTrigger || false,
+        requireOverride: s.requireOverride || false,
+        triggeredCount: s.triggeredCount || 0,
+        blockedAmount: s.blockedAmount || 0,
+        reason: s.reason || undefined,
+      }));
+      
+      const mappedBudgets: Budget[] = budgets.map(b => ({
+        id: b.id,
+        name: b.name,
+        period: b.period as Budget["period"],
+        startDate: b.startDate?.toISOString() || "",
+        endDate: b.endDate?.toISOString() || "",
+        totalAllocated: b.totalAllocated,
+        totalSpent: b.totalSpent || 0,
+        status: b.status as Budget["status"],
+        lineItems: [],
+      }));
+      
+      // If we have database data, use it
+      if (customers.length > 0 || vendors.length > 0 || categories.length > 0 || stopOrders.length > 0 || budgets.length > 0) {
+        set({
+          customers: mappedCustomers,
+          vendors: mappedVendors,
+          categories: mappedCategories,
+          stopOrders: mappedStopOrders,
+          budgets: mappedBudgets,
+          isDbConnected: true,
+          isLoading: false,
+        });
+        console.log("Database connected - loaded from SQLite");
+        return;
+      }
+      
+      // If no data in database, use mock data
+      console.log("Database connected but empty - using mock data");
+      get().initializeMockData();
+      set({ isDbConnected: true, isLoading: false });
+      
+    } catch (error) {
+      console.error("Database connection failed, using mock data:", error);
+      get().initializeMockData();
+      set({ isDbConnected: false, isLoading: false });
+    }
+  },
 
   initializeMockData: () =>
     set({
