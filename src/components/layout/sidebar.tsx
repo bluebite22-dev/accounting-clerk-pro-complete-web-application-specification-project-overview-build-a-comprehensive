@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Truck,
   Edit3,
+  ClipboardList,
 } from "lucide-react";
 import { useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
@@ -36,6 +37,7 @@ const menuItems = [
   { href: "/forms", label: "Edit Forms", icon: Edit3, roles: ["admin", "accountant", "clerk"] },
   { href: "/budgets", label: "Budgets", icon: PieChart },
   { href: "/reports", label: "Reports", icon: PieChart },
+  { href: "/audit-logs", label: "Audit Logs", icon: ClipboardList, roles: ["admin", "auditor"] },
   { href: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
 ];
 

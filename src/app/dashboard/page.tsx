@@ -1,11 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useDataStore } from "@/stores/data-store";
 import { formatCurrency, formatDate, calculateDaysUntil } from "@/lib/utils";
+import { CashFlowChart, ExpenseBreakdownChart, IncomeExpensesBarChart } from "@/components/charts";
 import {
   DollarSign,
   TrendingUp,
@@ -344,7 +346,7 @@ function BudgetOverview() {
 }
 
 export default function DashboardPage() {
-  const { transactions, invoices, bills } = useDataStore();
+  const { transactions, invoices, bills, categories } = useDataStore();
   
   // Calculate summary stats
   const totalIncome = transactions
@@ -362,6 +364,100 @@ export default function DashboardPage() {
   const totalPayables = bills
     .filter((b) => b.status !== "paid" && b.status !== "cancelled")
     .reduce((sum, b) => sum + (b.totalAmount - b.amountPaid), 0);
+
+  // Prepare chart data - Cash Flow
+  const cashFlowData = useMemo(() => {
+    const monthlyData: Record<string, { income: number; expenses: number }> = {};
+    
+    transactions.forEach((t) => {
+      const date = new Date(t.date);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+      
+      if (!monthlyData[key]) {
+        monthlyData[key] = { income: 0, expenses: 0 };
+      }
+      
+      if (t.type === "income") {
+        monthlyData[key].income += t.amount;
+      } else {
+        monthlyData[key].expenses += t.amount;
+      }
+    });
+    
+    return Object.entries(monthlyData)
+      .map(([date, data]) => ({
+        date,
+        income: data.income,
+        expenses: data.expenses,
+        netCashFlow: data.income - data.expenses,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-12);
+  }, [transactions]);
+
+  // Prepare chart data - Monthly Income vs Expenses
+  const monthlyComparisonData = useMemo(() => {
+    const monthlyData: Record<string, { income: number; expenses: number }> = {};
+    
+    transactions.forEach((t) => {
+      const date = new Date(t.date);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      
+      if (!monthlyData[key]) {
+        monthlyData[key] = { income: 0, expenses: 0 };
+      }
+      
+      if (t.type === "income") {
+        monthlyData[key].income += t.amount;
+      } else {
+        monthlyData[key].expenses += t.amount;
+      }
+    });
+    
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    return Object.entries(monthlyData)
+      .map(([month, data]) => {
+        const [year, monthNum] = month.split("-");
+        return {
+          month: `${monthNames[parseInt(monthNum) - 1]} ${year}`,
+          income: data.income,
+          expenses: data.expenses,
+        };
+      })
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .slice(-12);
+  }, [transactions]);
+
+  // Prepare chart data - Expense Breakdown by Category
+  const expenseBreakdownData = useMemo(() => {
+    const categoryData: Record<string, { amount: number; color: string }> = {};
+    
+    transactions
+      .filter((t) => t.type === "expense")
+      .forEach((t) => {
+        const category = categories.find((c) => c.id === t.categoryId);
+        const name = category?.name || "Uncategorized";
+        
+        if (!categoryData[name]) {
+          categoryData[name] = {
+            amount: 0,
+            color: category?.color || "#6B7280",
+          };
+        }
+        
+        categoryData[name].amount += t.amount;
+      });
+    
+    return Object.entries(categoryData)
+      .map(([category, data]) => ({
+        category,
+        amount: data.amount,
+        color: data.color,
+      }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 8);
+  }, [transactions, categories]);
 
   return (
     <AppLayout>
@@ -407,6 +503,14 @@ export default function DashboardPage() {
             iconColor="bg-purple-500"
           />
         </div>
+
+        {/* Charts Section */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <CashFlowChart data={cashFlowData} title="Cash Flow Trend" />
+          <ExpenseBreakdownChart data={expenseBreakdownData} title="Expense Breakdown" />
+        </div>
+
+        <IncomeExpensesBarChart data={monthlyComparisonData} title="Income vs Expenses" />
 
         {/* Quick Actions */}
         <QuickActions />
