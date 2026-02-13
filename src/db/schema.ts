@@ -444,3 +444,16 @@ export type ScheduledReport = typeof scheduledReports.$inferSelect;
 export type ReportHistory = typeof reportHistory.$inferSelect;
 export type CustomReport = typeof customReports.$inferSelect;
 export type IntegrationCredential = typeof integrationCredentials.$inferSelect;
+
+export const pushSubscriptions = sqliteTable("push_subscriptions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  subscription: text("subscription").notNull(),
+  endpoint: text("endpoint").notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  lastSentAt: integer("last_sent_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
