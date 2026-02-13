@@ -26,6 +26,9 @@ Accounting Clerk Pro is a full-featured accounting management web application wi
 - [x] Delivery Tracking (automatic delivery count from deduction/150)
 - [x] Edit Forms Section (centralized form management)
 - [x] Stop Order Approval Workflow (submit, approve/reject with notes)
+- [x] Notification System (toast notifications, bell menu, unread counts)
+- [x] Dark Mode Theme (dark/light/system toggle)
+- [x] Banking Integration (CSV import with transaction matching)
 - [x] Quality assurance (build, lint, typecheck passing)
 
 ## Current Structure
