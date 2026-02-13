@@ -1,4 +1,7 @@
 import { format } from "date-fns";
+import * as XLSX from "xlsx";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // Export data to JSON
 export function exportToJSON(data: any[], filename: string): void {
@@ -33,39 +36,112 @@ export function exportToCSV(data: any[], filename: string): void {
   downloadFile(csvString, `${filename}.csv`, "text/csv");
 }
 
-// Export data to Excel (using basic XML format for compatibility)
-export function exportToExcel(data: any[], filename: string, sheetName: string = "Sheet1"): void {
+// Export data to Excel (modern format using xlsx library)
+export function exportToExcel(
+  data: any[],
+  filename: string,
+  sheetName: string = "Sheet1"
+): void {
+  if (data.length === 0) return;
+
+  // Create workbook and worksheet
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(data);
+
+  // Auto-size columns based on content
+  const columnWidths = Object.keys(data[0]).map((key) => ({
+    wch: Math.max(
+      key.length,
+      ...data.map((row) => String(row[key] ?? "").length)
+    ) + 2,
+  }));
+  worksheet["!cols"] = columnWidths;
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+  // Generate Excel file
+  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([excelBuffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+
+  downloadBlob(blob, `${filename}.xlsx`);
+}
+
+// Export data to PDF (using jsPDF with autoTable)
+export function exportToPDF(
+  data: any[],
+  filename: string,
+  title: string,
+  options: {
+    orientation?: "portrait" | "landscape";
+    includeDate?: boolean;
+    customStyles?: Record<string, string | number>;
+  } = {}
+): void {
+  if (data.length === 0) return;
+
+  const { orientation = "portrait", includeDate = true, customStyles = {} } = options;
+
+  // Create PDF document
+  const doc = new jsPDF({
+    orientation,
+    unit: "mm",
+    format: "a4",
+  });
+
+  // Add title
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+    doc.text(title, 14, 20);
+
+  // Add date if requested
+  if (includeDate) {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generated: ${format(new Date(), "PPpp")}`, 14, 28);
+  }
+
+  // Prepare table data
   const headers = Object.keys(data[0]);
+  const body = data.map((row) => headers.map((header) => String(row[header] ?? "")));
 
-  // Create XML workbook
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-  <Worksheet ss:Name="${sheetName}">
-    <Table>`;
+  // Add table using autoTable
+  autoTable(doc, {
+    head: [headers],
+    body,
+    startY: includeDate ? 35 : 25,
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+      ...customStyles,
+    },
+    headStyles: {
+      fillColor: [59, 130, 246], // Blue header
+      textColor: 255,
+      fontStyle: "bold",
+    },
+    alternateRowStyles: {
+      fillColor: [245, 247, 250],
+    },
+    margin: { top: 10, right: 14, bottom: 20, left: 14 },
+  });
 
-  // Add headers
-  xml += `<Row>`;
-  for (const header of headers) {
-    xml += `<Cell><Data ss:Type="String">${header}</Data></Cell>`;
+  // Add page numbers
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `Page ${i} of ${pageCount}`,
+      doc.internal.pageSize.width - 30,
+      doc.internal.pageSize.height - 10
+    );
   }
-  xml += `</Row>`;
 
-  // Add data rows
-  for (const row of data) {
-    xml += `<Row>`;
-    for (const header of headers) {
-      const value = row[header];
-      const type = typeof value === "number" ? "Number" : "String";
-      xml += `<Cell><Data ss:Type="${type}">${value ?? ""}</Data></Cell>`;
-    }
-    xml += `</Row>`;
-  }
-
-  xml += `</Table></Worksheet></Workbook>`;
-
-  downloadFile(xml, `${filename}.xls`, "application/vnd.ms-excel");
+  // Save PDF
+  doc.save(`${filename}.pdf`);
 }
 
 // Print to PDF (browser print dialog)
@@ -170,6 +246,37 @@ export function importFromCSV<T = Record<string, string>>(file: File): Promise<T
   });
 }
 
+// Import from Excel file
+export async function importFromExcel<T = Record<string, unknown>>(file: File): Promise<T[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "array" });
+        
+        // Get the first sheet
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) {
+          reject(new Error("Excel file has no sheets"));
+          return;
+        }
+        
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData: T[] = XLSX.utils.sheet_to_json(worksheet);
+        
+        resolve(jsonData);
+      } catch (error) {
+        reject(new Error("Failed to parse Excel file"));
+      }
+    };
+    
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 // Parse a CSV line handling quoted values
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
@@ -196,6 +303,11 @@ function parseCSVLine(line: string): string[] {
 // Helper function to download file
 function downloadFile(content: string, filename: string, mimeType: string): void {
   const blob = new Blob([content], { type: mimeType });
+  downloadBlob(blob, filename);
+}
+
+// Helper function to download blob
+function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -314,4 +426,141 @@ export function matchBankTransactions(
   });
 
   return matches;
+}
+
+// Export multiple sheets to Excel workbook
+export function exportMultiSheetExcel(
+  sheets: Array<{ name: string; data: any[] }>,
+  filename: string
+): void {
+  const workbook = XLSX.utils.book_new();
+
+  for (const sheet of sheets) {
+    if (sheet.data.length === 0) continue;
+
+    const worksheet = XLSX.utils.json_to_sheet(sheet.data);
+    
+    // Auto-size columns
+    const columnWidths = Object.keys(sheet.data[0]).map((key) => ({
+      wch: Math.max(
+        key.length,
+        ...sheet.data.map((row) => String(row[key] ?? "").length)
+      ) + 2,
+    }));
+    worksheet["!cols"] = columnWidths;
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
+  }
+
+  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([excelBuffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+
+  downloadBlob(blob, `${filename}.xlsx`);
+}
+
+// Generate invoice PDF
+export function generateInvoicePDF(
+  invoice: {
+    invoiceNumber: string;
+    customerName: string;
+    customerAddress: string;
+    items: Array<{ description: string; quantity: number; unitPrice: number }>;
+    subtotal: number;
+    tax: number;
+    total: number;
+    dueDate: string;
+    notes?: string;
+  },
+  companyInfo: {
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+  }
+): void {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  // Company info (top left)
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text(companyInfo.name, 14, 20);
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(companyInfo.address, 14, 26);
+  doc.text(companyInfo.phone, 14, 31);
+  doc.text(companyInfo.email, 14, 36);
+
+  // Invoice info (top right)
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("INVOICE", 150, 20);
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Invoice #: ${invoice.invoiceNumber}`, 150, 28);
+  doc.text(`Date: ${formatDateForExport(new Date())}`, 150, 33);
+  doc.text(`Due Date: ${formatDateForExport(invoice.dueDate)}`, 150, 38);
+
+  // Bill to
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("Bill To:", 14, 55);
+  doc.setFont("helvetica", "normal");
+  doc.text(invoice.customerName, 14, 61);
+  
+  // Word wrap address
+  const splitAddress = doc.splitTextToSize(invoice.customerAddress, 80);
+  doc.text(splitAddress, 14, 67);
+
+  // Items table
+  const tableData = invoice.items.map((item) => [
+    item.description,
+    item.quantity.toString(),
+    formatCurrencyForExport(item.unitPrice),
+    formatCurrencyForExport(item.quantity * item.unitPrice),
+  ]);
+
+  autoTable(doc, {
+    head: [["Description", "Qty", "Unit Price", "Total"]],
+    body: tableData,
+    startY: 85,
+    headStyles: {
+      fillColor: [59, 130, 246],
+      textColor: 255,
+      fontStyle: "bold",
+    },
+    columnStyles: {
+      0: { cellWidth: 80 },
+      1: { cellWidth: 25, halign: "center" },
+      2: { cellWidth: 35, halign: "right" },
+      3: { cellWidth: 35, halign: "right" },
+    },
+  });
+
+  // Totals
+  const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+  
+  doc.setFont("helvetica", "normal");
+  doc.text(`Subtotal: ${formatCurrencyForExport(invoice.subtotal)}`, 150, finalY + 10);
+  doc.text(`Tax: ${formatCurrencyForExport(invoice.tax)}`, 150, finalY + 16);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Total: ${formatCurrencyForExport(invoice.total)}`, 150, finalY + 24);
+
+  // Notes
+  if (invoice.notes) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Notes:", 14, finalY + 35);
+    doc.setFont("helvetica", "normal");
+    const splitNotes = doc.splitTextToSize(invoice.notes, 180);
+    doc.text(splitNotes, 14, finalY + 41);
+  }
+
+  doc.save(`invoice-${invoice.invoiceNumber}.pdf`);
 }
