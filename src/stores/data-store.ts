@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import * as db from "@/db/queries";
+import * as api from "@/lib/client-api";
 
 export interface Transaction {
   id: string;
@@ -631,47 +631,46 @@ export const useDataStore = create<DataState>((set, get) => ({
       budgets: state.budgets.filter((b) => b.id !== id),
     })),
 
-  // Try to load from database, fallback to mock data
+  // Try to load from API, fallback to mock data
   initializeFromDatabase: async () => {
     set({ isLoading: true });
     
     try {
-      // Initialize the database (create tables and seed if needed)
-      await db.initializeDatabase();
-      
-      // Try to fetch data from database
-      const [customers, vendors, categories, stopOrders, budgets] = await Promise.all([
-        db.getCustomers(),
-        db.getVendors(),
-        db.getCategories(),
-        db.getStopOrders(),
-        db.getBudgets(),
+      // Fetch data from API endpoints
+      const [customers, vendors, stopOrders, budgets] = await Promise.all([
+        api.getCustomers().catch(() => []),
+        api.getVendors().catch(() => []),
+        api.getStopOrders().catch(() => []),
+        api.getBudgets().catch(() => []),
       ]);
       
+      // Get default categories
+      const categories = api.getDefaultCategories();
+      
       // Map database records to store interfaces
-      const mappedCustomers: Customer[] = customers.map(c => ({
+      const mappedCustomers: Customer[] = customers.map((c: api.Customer) => ({
         id: c.id,
         name: c.name,
         email: c.email || "",
         phone: c.phone || undefined,
         address: c.address || undefined,
         creditLimit: c.creditLimit || 0,
-        paymentTermsNum: c.paymentTerms || 30,
+        paymentTermsNum: typeof c.paymentTerms === 'string' ? parseInt(c.paymentTerms) || 30 : (c.paymentTerms || 30),
         balance: 0,
         status: c.isActive ? "active" : "inactive",
-        createdAt: c.createdAt?.toISOString(),
+        createdAt: c.createdAt,
       }));
       
-      const mappedVendors: Vendor[] = vendors.map(v => ({
+      const mappedVendors: Vendor[] = vendors.map((v: api.Vendor) => ({
         id: v.id,
         name: v.name,
         email: v.email || undefined,
         phone: v.phone || undefined,
-        paymentTerms: v.paymentTerms || 30,
-        balance: 0,
+        paymentTerms: typeof v.paymentTerms === 'string' ? parseInt(v.paymentTerms) || 30 : (v.paymentTerms || 30),
+        balance: v.balance || 0,
       }));
       
-      const mappedCategories: Category[] = categories.map(c => ({
+      const mappedCategories: Category[] = categories.map((c: api.Category) => ({
         id: c.id,
         name: c.name,
         type: c.type as "income" | "expense" | "both",
@@ -679,29 +678,29 @@ export const useDataStore = create<DataState>((set, get) => ({
         icon: c.icon || undefined,
       }));
       
-      const mappedStopOrders: StopOrder[] = stopOrders.map(s => ({
+      const mappedStopOrders: StopOrder[] = stopOrders.map((s: api.StopOrder) => ({
         id: s.id,
         type: s.type as StopOrder["type"],
         isActive: s.isActive,
-        full_name: s.fullName || undefined,
+        full_name: s.full_name || undefined,
         sex: s.sex as StopOrder["sex"],
-        nrc_no: s.nrcNo || undefined,
-        man_no: s.manNo || undefined,
+        nrc_no: s.nrc_no || undefined,
+        man_no: s.man_no || undefined,
         rank: s.rank as StopOrder["rank"],
         barrack: s.barrack || undefined,
         district: s.district || undefined,
         province: s.province || undefined,
         mobile: s.mobile || undefined,
         email: s.email || undefined,
-        deduction_amount: s.deductionAmount || undefined,
-        duration_months: s.durationMonths || undefined,
-        start_date: s.startMonth || undefined,
-        monthly_deduction_from: s.monthlyDeductionFrom?.toISOString(),
-        monthly_deduction_to: s.monthlyDeductionTo?.toISOString(),
-        amount_in_words: s.amountInWords || undefined,
-        authorized_by: s.authorizedBy || undefined,
-        account_number: s.accountNumber || undefined,
-        company_name: s.companyName || undefined,
+        deduction_amount: s.deduction_amount || undefined,
+        duration_months: s.duration_months || undefined,
+        start_date: s.start_date || undefined,
+        monthly_deduction_from: s.monthly_deduction_from,
+        monthly_deduction_to: s.monthly_deduction_to,
+        amount_in_words: s.amount_in_words || undefined,
+        authorized_by: s.authorized_by || undefined,
+        account_number: s.account_number || undefined,
+        company_name: s.company_name || undefined,
         notifyOnTrigger: s.notifyOnTrigger || false,
         requireOverride: s.requireOverride || false,
         triggeredCount: s.triggeredCount || 0,
@@ -709,20 +708,20 @@ export const useDataStore = create<DataState>((set, get) => ({
         reason: s.reason || undefined,
       }));
       
-      const mappedBudgets: Budget[] = budgets.map(b => ({
+      const mappedBudgets: Budget[] = budgets.map((b: api.Budget) => ({
         id: b.id,
         name: b.name,
         period: b.period as Budget["period"],
-        startDate: b.startDate?.toISOString() || "",
-        endDate: b.endDate?.toISOString() || "",
+        startDate: b.startDate,
+        endDate: b.endDate,
         totalAllocated: b.totalAllocated,
         totalSpent: b.totalSpent || 0,
         status: b.status as Budget["status"],
-        lineItems: [],
+        lineItems: b.lineItems || [],
       }));
       
-      // If we have database data, use it
-      if (customers.length > 0 || vendors.length > 0 || categories.length > 0 || stopOrders.length > 0 || budgets.length > 0) {
+      // If we have data, use it
+      if (customers.length > 0 || vendors.length > 0 || stopOrders.length > 0 || budgets.length > 0) {
         set({
           customers: mappedCustomers,
           vendors: mappedVendors,
@@ -732,17 +731,17 @@ export const useDataStore = create<DataState>((set, get) => ({
           isDbConnected: true,
           isLoading: false,
         });
-        console.log("Database connected - loaded from SQLite");
+        console.log("API connected - loaded data");
         return;
       }
       
-      // If no data in database, use mock data
-      console.log("Database connected but empty - using mock data");
+      // If no data from API, use mock data
+      console.log("API connected but empty - using mock data");
       get().initializeMockData();
       set({ isDbConnected: true, isLoading: false });
       
     } catch (error) {
-      console.error("Database connection failed, using mock data:", error);
+      console.error("API connection failed, using mock data:", error);
       get().initializeMockData();
       set({ isDbConnected: false, isLoading: false });
     }
