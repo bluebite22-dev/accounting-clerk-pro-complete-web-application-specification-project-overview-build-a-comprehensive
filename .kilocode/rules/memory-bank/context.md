@@ -40,6 +40,15 @@ Accounting Clerk Pro is a full-featured accounting management web application wi
 - [x] **Mobile-Optimized Forms** - Touch-friendly components: MobileInput, MobileSelect, MobileTextarea, MobileButton, MobileForm
 - [x] **Push Notification Hooks** - usePushNotifications, useOnlineStatus, useBackgroundSync hooks
 
+### New Enhancements (2026-02-14)
+- [x] **Supabase Integration** - Migrated from SQLite to Supabase PostgreSQL
+  - Installed @supabase/supabase-js and @neondatabase/serverless
+  - Added .env.local with DATABASE_URL and Supabase credentials
+  - Updated drizzle.config.ts for PostgreSQL dialect
+  - Updated src/db/index.ts to use neon HTTP driver
+  - Converted schema from sqliteTable to pgTable
+  - Added src/lib/supabase.ts client helper
+
 ## Current Structure
 
 | File/Directory | Purpose | Status |
@@ -61,7 +70,10 @@ Accounting Clerk Pro is a full-featured accounting management web application wi
 | `src/app/api/push/` | Push notifications API | ✅ New |
 | `public/sw.js` | Service Worker | ✅ New |
 | `src/lib/export-import.ts` | Export/Import utilities | ✅ Complete |
-| `src/db/schema.ts` | Drizzle ORM schema | ✅ Complete |
+| `src/db/schema.ts` | Drizzle ORM schema (PostgreSQL) | ✅ Updated |
+| `src/db/index.ts` | Database connection (neon HTTP) | ✅ Updated |
+| `src/lib/supabase.ts` | Supabase client helper | ✅ New |
+| `.env.local` | Environment variables | ✅ New |
 | `src/stores/` | Zustand state management | ✅ Complete |
 | `src/components/ui/` | Reusable UI components | ✅ Complete |
 | `src/components/ui/mobile-*.tsx` | Mobile-optimized form components | ✅ New |
@@ -138,3 +150,4 @@ bun typecheck  # Run TypeScript
 | Initial | Template created with base setup |
 | 2026-02-12 | Accounting Clerk Pro - Full application implementation complete |
 | 2026-02-13 | Enhanced Webhooks API, PWA, Service Worker, Push Notifications, Mobile-optimized forms |
+| 2026-02-14 | Migrated to Supabase PostgreSQL database |
