@@ -1,7 +1,7 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, real, timestamp, boolean, serial } from "drizzle-orm/pg-core";
 
 // Users & Authentication
-export const users = sqliteTable("users", {
+export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
@@ -10,24 +10,24 @@ export const users = sqliteTable("users", {
   role: text("role", { enum: ["admin", "accountant", "clerk", "auditor", "viewer"] }).notNull().default("clerk"),
   companyId: text("company_id").references(() => companies.id),
   avatar: text("avatar"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true),
   failedLoginAttempts: integer("failed_login_attempts").notNull().default(0),
-  lockedUntil: integer("locked_until", { mode: "timestamp" }),
-  lastLoginAt: integer("last_login_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  lockedUntil: timestamp("locked_until"),
+  lastLoginAt: timestamp("last_login_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const sessions = sqliteTable("sessions", {
+export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id),
   token: text("token").notNull().unique(),
-  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Companies (Multi-tenant)
-export const companies = sqliteTable("companies", {
+export const companies = pgTable("companies", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
@@ -38,12 +38,12 @@ export const companies = sqliteTable("companies", {
   fiscalYearStart: integer("fiscal_year_start").notNull().default(1), // Month 1-12
   currency: text("currency").notNull().default("USD"),
   taxId: text("tax_id"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Chart of Accounts
-export const accounts = sqliteTable("accounts", {
+export const accounts = pgTable("accounts", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   code: text("code").notNull(),
@@ -51,12 +51,12 @@ export const accounts = sqliteTable("accounts", {
   type: text("type", { enum: ["asset", "liability", "equity", "revenue", "expense"] }).notNull(),
   parentId: text("parent_id"),
   description: text("description"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Customers
-export const customers = sqliteTable("customers", {
+export const customers = pgTable("customers", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   name: text("name").notNull(),
@@ -66,13 +66,13 @@ export const customers = sqliteTable("customers", {
   creditLimit: real("credit_limit").default(0),
   paymentTerms: integer("payment_terms").default(30), // Net 30, Net 60, etc.
   notes: text("notes"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Vendors
-export const vendors = sqliteTable("vendors", {
+export const vendors = pgTable("vendors", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   name: text("name").notNull(),
@@ -81,17 +81,17 @@ export const vendors = sqliteTable("vendors", {
   address: text("address"),
   paymentDetails: text("payment_details"), // JSON for bank info
   taxId: text("tax_id"),
-  is1099Eligible: integer("is_1099_eligible", { mode: "boolean" }).default(false),
+  is1099Eligible: boolean("is_1099_eligible").default(false),
   paymentTerms: integer("payment_terms").default(30),
   discountTerms: text("discount_terms"), // e.g., "2/10 Net 30"
   notes: text("notes"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Categories
-export const categories = sqliteTable("categories", {
+export const categories = pgTable("categories", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   name: text("name").notNull(),
@@ -99,16 +99,16 @@ export const categories = sqliteTable("categories", {
   parentId: text("parent_id"),
   color: text("color").default("#6B7280"),
   icon: text("icon"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Transactions
-export const transactions = sqliteTable("transactions", {
+export const transactions = pgTable("transactions", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   type: text("type", { enum: ["income", "expense", "transfer"] }).notNull(),
   amount: real("amount").notNull(),
-  date: integer("date", { mode: "timestamp" }).notNull(),
+  date: timestamp("date").notNull(),
   categoryId: text("category_id").references(() => categories.id),
   accountId: text("account_id").references(() => accounts.id),
   customerId: text("customer_id").references(() => customers.id),
@@ -120,23 +120,23 @@ export const transactions = sqliteTable("transactions", {
   description: text("description"),
   notes: text("notes"),
   attachmentUrl: text("attachment_url"),
-  isReconciled: integer("is_reconciled", { mode: "boolean" }).default(false),
-  isTaxable: integer("is_taxable", { mode: "boolean" }).default(true),
+  isReconciled: boolean("is_reconciled").default(false),
+  isTaxable: boolean("is_taxable").default(true),
   taxAmount: real("tax_amount").default(0),
   createdBy: text("created_by").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Invoices (Accounts Receivable)
-export const invoices = sqliteTable("invoices", {
+export const invoices = pgTable("invoices", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   invoiceNumber: text("invoice_number").notNull().unique(),
   customerId: text("customer_id").notNull().references(() => customers.id),
   status: text("status", { enum: ["draft", "sent", "viewed", "partial", "paid", "overdue", "cancelled", "written_off"] }).notNull().default("draft"),
-  issueDate: integer("issue_date", { mode: "timestamp" }).notNull(),
-  dueDate: integer("due_date", { mode: "timestamp" }).notNull(),
+  issueDate: timestamp("issue_date").notNull(),
+  dueDate: timestamp("due_date").notNull(),
   subtotal: real("subtotal").notNull(),
   taxAmount: real("tax_amount").default(0),
   discountAmount: real("discount_amount").default(0),
@@ -145,14 +145,14 @@ export const invoices = sqliteTable("invoices", {
   notes: text("notes"),
   terms: text("terms"),
   createdBy: text("created_by").references(() => users.id),
-  sentAt: integer("sent_at", { mode: "timestamp" }),
-  paidAt: integer("paid_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  sentAt: timestamp("sent_at"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Invoice Line Items
-export const invoiceLineItems = sqliteTable("invoice_line_items", {
+export const invoiceLineItems = pgTable("invoice_line_items", {
   id: text("id").primaryKey(),
   invoiceId: text("invoice_id").notNull().references(() => invoices.id),
   description: text("description").notNull(),
@@ -160,18 +160,18 @@ export const invoiceLineItems = sqliteTable("invoice_line_items", {
   unitPrice: real("unit_price").notNull(),
   taxRate: real("tax_rate").default(0),
   total: real("total").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Bills (Accounts Payable)
-export const bills = sqliteTable("bills", {
+export const bills = pgTable("bills", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   billNumber: text("bill_number"),
   vendorId: text("vendor_id").notNull().references(() => vendors.id),
   status: text("status", { enum: ["draft", "pending", "approved", "partial", "paid", "overdue", "cancelled"] }).notNull().default("draft"),
-  issueDate: integer("issue_date", { mode: "timestamp" }).notNull(),
-  dueDate: integer("due_date", { mode: "timestamp" }).notNull(),
+  issueDate: timestamp("issue_date").notNull(),
+  dueDate: timestamp("due_date").notNull(),
   subtotal: real("subtotal").notNull(),
   taxAmount: real("tax_amount").default(0),
   totalAmount: real("total_amount").notNull(),
@@ -180,14 +180,14 @@ export const bills = sqliteTable("bills", {
   approvalNotes: text("approval_notes"),
   createdBy: text("created_by").references(() => users.id),
   approvedBy: text("approved_by").references(() => users.id),
-  approvedAt: integer("approved_at", { mode: "timestamp" }),
-  paidAt: integer("paid_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  approvedAt: timestamp("approved_at"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Bill Line Items
-export const billLineItems = sqliteTable("bill_line_items", {
+export const billLineItems = pgTable("bill_line_items", {
   id: text("id").primaryKey(),
   billId: text("bill_id").notNull().references(() => bills.id),
   description: text("description").notNull(),
@@ -196,18 +196,18 @@ export const billLineItems = sqliteTable("bill_line_items", {
   taxRate: real("tax_rate").default(0),
   total: real("total").notNull(),
   categoryId: text("category_id").references(() => categories.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Stop Orders (Payroll Deduction Authorizations)
-export const stopOrders = sqliteTable("stop_orders", {
+export const stopOrders = pgTable("stop_orders", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   
   // Form metadata
-  formDate: integer("form_date", { mode: "timestamp" }),
+  formDate: timestamp("form_date"),
   type: text("type", { enum: ["amount", "vendor", "category", "recurring", "date", "payroll"] }).notNull().default("payroll"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true),
   
   // Employee details
   fullName: text("full_name"),
@@ -225,8 +225,8 @@ export const stopOrders = sqliteTable("stop_orders", {
   deductionAmount: real("deduction_amount"),
   durationMonths: integer("duration_months"),
   startMonth: text("start_month"), // YYYY-MM format
-  monthlyDeductionFrom: integer("monthly_deduction_from", { mode: "timestamp" }),
-  monthlyDeductionTo: integer("monthly_deduction_to", { mode: "timestamp" }),
+  monthlyDeductionFrom: timestamp("monthly_deduction_from"),
+  monthlyDeductionTo: timestamp("monthly_deduction_to"),
   amountInWords: text("amount_in_words"),
   authorizedBy: text("authorized_by"),
   
@@ -238,50 +238,50 @@ export const stopOrders = sqliteTable("stop_orders", {
   target: text("target"),
   conditions: text("conditions"),
   reason: text("reason"),
-  effectiveFrom: integer("effective_from", { mode: "timestamp" }),
-  expiresAt: integer("expires_at", { mode: "timestamp" }),
-  notifyOnTrigger: integer("notify_on_trigger", { mode: "boolean" }).default(true),
-  requireOverride: integer("require_override", { mode: "boolean" }).default(true),
+  effectiveFrom: timestamp("effective_from"),
+  expiresAt: timestamp("expires_at"),
+  notifyOnTrigger: boolean("notify_on_trigger").default(true),
+  requireOverride: boolean("require_override").default(true),
   triggeredCount: integer("triggered_count").default(0),
   blockedAmount: real("blocked_amount").default(0),
   
   // Audit
   createdBy: text("created_by").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Budgets
-export const budgets = sqliteTable("budgets", {
+export const budgets = pgTable("budgets", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   name: text("name").notNull(),
   description: text("description"),
   period: text("period", { enum: ["monthly", "quarterly", "annual"] }).notNull(),
-  startDate: integer("start_date", { mode: "timestamp" }).notNull(),
-  endDate: integer("end_date", { mode: "timestamp" }).notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
   totalAllocated: real("total_allocated").notNull(),
   totalSpent: real("total_spent").default(0),
   status: text("status", { enum: ["draft", "active", "closed"] }).notNull().default("draft"),
   createdBy: text("created_by").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Budget Line Items
-export const budgetLineItems = sqliteTable("budget_line_items", {
+export const budgetLineItems = pgTable("budget_line_items", {
   id: text("id").primaryKey(),
   budgetId: text("budget_id").notNull().references(() => budgets.id),
   categoryId: text("category_id").references(() => categories.id),
   allocated: real("allocated").notNull(),
   spent: real("spent").default(0),
   alertThreshold: integer("alert_threshold").default(80), // Percentage
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Recurring Transactions
-export const recurringTransactions = sqliteTable("recurring_transactions", {
+export const recurringTransactions = pgTable("recurring_transactions", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   type: text("type", { enum: ["income", "expense"] }).notNull(),
@@ -293,18 +293,18 @@ export const recurringTransactions = sqliteTable("recurring_transactions", {
   customerId: text("customer_id").references(() => customers.id),
   vendorId: text("vendor_id").references(() => vendors.id),
   description: text("description"),
-  nextOccurrence: integer("next_occurrence", { mode: "timestamp" }).notNull(),
-  endDate: integer("end_date", { mode: "timestamp" }),
+  nextOccurrence: timestamp("next_occurrence").notNull(),
+  endDate: timestamp("end_date"),
   occurrencesLeft: integer("occurrences_left"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  autoInvoice: integer("auto_invoice", { mode: "boolean" }).default(false),
+  isActive: boolean("is_active").notNull().default(true),
+  autoInvoice: boolean("auto_invoice").default(false),
   createdBy: text("created_by").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Audit Log
-export const auditLog = sqliteTable("audit_log", {
+export const auditLog = pgTable("audit_log", {
   id: text("id").primaryKey(),
   companyId: text("company_id").references(() => companies.id),
   userId: text("user_id").references(() => users.id),
@@ -315,23 +315,23 @@ export const auditLog = sqliteTable("audit_log", {
   newValue: text("new_value"), // JSON
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Notifications
-export const notifications = sqliteTable("notifications", {
+export const notifications = pgTable("notifications", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id),
   type: text("type", { enum: ["info", "warning", "error", "success"] }).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
   link: text("link"),
-  isRead: integer("is_read", { mode: "boolean" }).default(false),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Webhooks
-export const webhooks = sqliteTable("webhooks", {
+export const webhooks = pgTable("webhooks", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   url: text("url").notNull(),
@@ -340,14 +340,14 @@ export const webhooks = sqliteTable("webhooks", {
   description: text("description"),
   status: text("status", { enum: ["active", "paused", "failed"] }).notNull().default("active"),
   failureCount: integer("failure_count").notNull().default(0),
-  lastTriggered: integer("last_triggered", { mode: "timestamp" }),
-  lastFailedAt: integer("last_failed_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  lastTriggered: timestamp("last_triggered"),
+  lastFailedAt: timestamp("last_failed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Webhook Logs
-export const webhookLogs = sqliteTable("webhook_logs", {
+export const webhookLogs = pgTable("webhook_logs", {
   id: text("id").primaryKey(),
   webhookId: text("webhook_id").notNull().references(() => webhooks.id),
   event: text("event").notNull(),
@@ -357,11 +357,11 @@ export const webhookLogs = sqliteTable("webhook_logs", {
   responseBody: text("response_body"),
   errorMessage: text("error_message"),
   retryCount: integer("retry_count").notNull().default(0),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Scheduled Reports
-export const scheduledReports = sqliteTable("scheduled_reports", {
+export const scheduledReports = pgTable("scheduled_reports", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   name: text("name").notNull(),
@@ -371,20 +371,20 @@ export const scheduledReports = sqliteTable("scheduled_reports", {
   recipients: text("recipients").notNull(),
   format: text("format", { enum: ["pdf", "excel", "csv", "json"] }).notNull().default("pdf"),
   filters: text("filters"),
-  lastRunAt: integer("last_run_at", { mode: "timestamp" }),
-  nextRunAt: integer("next_run_at", { mode: "timestamp" }),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  lastRunAt: timestamp("last_run_at"),
+  nextRunAt: timestamp("next_run_at"),
+  isActive: boolean("is_active").notNull().default(true),
   createdBy: text("created_by").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Report History
-export const reportHistory = sqliteTable("report_history", {
+export const reportHistory = pgTable("report_history", {
   id: text("id").primaryKey(),
   reportId: text("report_id").notNull().references(() => scheduledReports.id),
   companyId: text("company_id").notNull().references(() => companies.id),
-  generatedAt: integer("generated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  generatedAt: timestamp("generated_at").notNull().defaultNow(),
   status: text("status", { enum: ["generating", "completed", "failed"] }).notNull().default("generating"),
   fileUrl: text("file_url"),
   errorMessage: text("error_message"),
@@ -392,7 +392,7 @@ export const reportHistory = sqliteTable("report_history", {
 });
 
 // Custom Report Templates
-export const customReports = sqliteTable("custom_reports", {
+export const customReports = pgTable("custom_reports", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   name: text("name").notNull(),
@@ -404,23 +404,35 @@ export const customReports = sqliteTable("custom_reports", {
   sortDir: text("sort_dir", { enum: ["asc", "desc"] }),
   groupBy: text("group_by"),
   calculations: text("calculations"),
-  isPublic: integer("is_public", { mode: "boolean" }).default(false),
+  isPublic: boolean("is_public").default(false),
   createdBy: text("created_by").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Integration Credentials
-export const integrationCredentials = sqliteTable("integration_credentials", {
+export const integrationCredentials = pgTable("integration_credentials", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   integrationType: text("integration_type", { enum: ["quickbooks", "xero", "stripe", "paypal", "sage"] }).notNull(),
   credentials: text("credentials").notNull(),
   status: text("status", { enum: ["active", "expired", "revoked"] }).notNull().default("active"),
-  lastSyncAt: integer("last_sync_at", { mode: "timestamp" }),
-  expiresAt: integer("expires_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  lastSyncAt: timestamp("last_sync_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Push Subscriptions
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  subscription: text("subscription").notNull(),
+  endpoint: text("endpoint").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  lastSentAt: timestamp("last_sent_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Type exports
@@ -444,16 +456,4 @@ export type ScheduledReport = typeof scheduledReports.$inferSelect;
 export type ReportHistory = typeof reportHistory.$inferSelect;
 export type CustomReport = typeof customReports.$inferSelect;
 export type IntegrationCredential = typeof integrationCredentials.$inferSelect;
-
-export const pushSubscriptions = sqliteTable("push_subscriptions", {
-  id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
-  subscription: text("subscription").notNull(),
-  endpoint: text("endpoint").notNull(),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  lastSentAt: integer("last_sent_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-});
-
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;

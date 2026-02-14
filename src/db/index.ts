@@ -1,8 +1,11 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
 import * as schema from "./schema";
 
-const sqlite = new Database("accounting.db");
-export const db = drizzle(sqlite, { schema });
+// Create a SQL client using neon serverless driver
+// This connects to Supabase's PostgreSQL database
+const sql = neon(process.env.DATABASE_URL!);
+
+export const db = drizzle(sql, { schema });
 
 export * from "./schema";
