@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ interface PaginationData {
 }
 
 export default function AuditLogsPage() {
+  const router = useRouter();
   const { user } = useAuthStore();
   
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
@@ -179,7 +181,20 @@ export default function AuditLogsPage() {
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Audit Logs</h1>
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={() => router.back()}
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
+            </svg>
+            Back
+          </Button>
+          <h1 className="text-2xl font-bold">Audit Logs</h1>
+        </div>
         <Button onClick={handleExport} variant="outline">
           Export CSV
         </Button>
