@@ -43,11 +43,13 @@ Accounting Clerk Pro is a full-featured accounting management web application wi
 ### New Enhancements (2026-02-14)
 - [x] **Supabase Integration** - Migrated from SQLite to Supabase PostgreSQL
   - Installed @supabase/supabase-js and @neondatabase/serverless
-  - Added .env.local with DATABASE_URL and Supabase credentials
   - Updated drizzle.config.ts for PostgreSQL dialect
   - Updated src/db/index.ts to use neon HTTP driver
   - Converted schema from sqliteTable to pgTable
   - Added src/lib/supabase.ts client helper
+
+### New Enhancements (2026-02-16)
+- [x] **Build Fix** - Fixed database initialization to handle missing DATABASE_URL gracefully at build time. Build now succeeds even without DATABASE_URL set (warns but doesn't fail). API routes will return 500 errors at runtime if db is accessed without DATABASE_URL.
 
 ## Current Structure
 
